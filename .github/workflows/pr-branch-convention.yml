@@ -1,0 +1,59 @@
+# This wrorkflow checks if the PR branch name is following the convention defined in the workflow file.
+
+# If PR branch name doesn't follow specified naming conventions, the workflow fails.
+
+# The workflow takes 2 inputs:
+#   1. PR branch name
+#   2. Additional branch names to add to naming conventions (comma separated)
+
+name: PR branch name convention
+
+on:
+  workflow_call:
+    inputs:
+      # INPUT 1
+      pr-branch-name:
+        description: "PR branch name"
+        type: string
+        required: true
+      # INPUT 2
+      additional-branch-names:
+        description: "Additional branch names (comma separated)"
+        type: string
+        required: false
+        default: ""
+
+jobs:
+  pr-branch-isConvention:
+    runs-on: ubuntu-latest
+
+    steps:
+      # concatenate additional branch names to convention branch names defined below ('dependabot' & 'bump' are used by dependabot)
+      - name: Set convention branch names
+        id: setConventionBranchNames
+        env:
+          ADDITIONAL_BRANCH_NAMES: "${{ github.event.inputs.additional-branch-names }}"
+          CONVENTIONAL_BRANCH_NAMES: "feat,fix,docs,ci,refactor,test,other,dependabot,bump"
+        run: |
+          echo "Additional branch names: $ADDITIONAL_BRANCH_NAMES"
+          # if additional branch names are provided, concatenate them to convention branch names
+          if [ -n "${ADDITIONAL_BRANCH_NAMES}" ]; then
+              CONVENTIONAL_BRANCH_NAMES="$CONVENTIONAL_BRANCH_NAMES,$ADDITIONAL_BRANCH_NAMES"
+          fi
+          # split by comma and remove spaces, then join with |
+          CONVENTIONAL_BRANCH_NAMES="${CONVENTIONAL_BRANCH_NAMES//,/|}";
+          echo "Convention branch names: $CONVENTIONAL_BRANCH_NAMES"
+          echo "convention-branch-names=$CONVENTIONAL_BRANCH_NAMES" >> "$GITHUB_OUTPUT"
+
+      - name: Check PR branch name is following convention
+        env:
+          CONVENTIONAL_BRANCH_NAMES: "${{ steps.setConventionBranchNames.outputs.convention-branch-names }}"
+          PR_BRANCH_NAME: "${{ github.event.inputs.pr-branch-name }}"
+        run: |
+          echo "PR branch name is $PR_BRANCH_NAME"
+          if [[ "$PR_BRANCH_NAME" =~ ^($CONVENTIONAL_BRANCH_NAMES)/.* ]]; then
+          echo "PR branch name is following convention"
+          else
+          echo "PR branch name is NOT following naming convention"
+          exit 1
+          fi
