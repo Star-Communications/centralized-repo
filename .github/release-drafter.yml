@@ -1,0 +1,97 @@
+name-template: "v$RESOLVED_VERSION"
+tag-template: "v$RESOLVED_VERSION"
+template: |
+  ## Changes
+
+  $CHANGES
+
+  **Full Changelog**: https://github.com/$OWNER/$REPOSITORY/compare/$PREVIOUS_TAG...v$RESOLVED_VERSION
+
+categories:
+  - title: "⚡ Breaking"
+    label: "breaking"
+
+  - title: "🚀 Features"
+    label: "feature"
+
+  - title: "🐞 Bug Fixes"
+    label: "bugfix"
+
+  - title: "📦 Dependencies"
+    label: "dependencies"
+
+  - title: "📄 Documentation"
+    label: "docs"
+
+  - title: "🧰 Maintenance"
+    labels:
+      - "enhancement"
+      - "refactor"
+
+  - title: "🧪 Tests"
+    label: "test"
+
+  # default if no label of the previously specified labels is provided
+  - title: "💬 Other"
+
+    collapse-after: 10
+
+change-template: "- $TITLE @$AUTHOR (#$NUMBER)"
+change-title-escapes: '\<*_&' # You can add # and @ to disable mentions, and add ` to disable code blocks.
+
+version-resolver:
+  major:
+    labels:
+      - "breaking"
+  minor:
+    labels:
+      - "feature"
+  patch:
+    labels:
+      - "bugfix"
+      - "dependencies"
+      - "enhancement"
+      - "refactor"
+
+exclude-labels:
+  - "ignore"
+
+autolabeler:
+  # Matchers (branch, files, title...) are evaluated independently; the label will be set if at least one of the matchers meets the criteria.
+  - label: "breaking"
+    branch:
+      - '/break\/.+/'
+
+  - label: "feature"
+    branch:
+      - '/feat\/.+/'
+
+  - label: "bugfix"
+    branch:
+      - '/fix\/.+/'
+
+  - label: "dependencies"
+    branch:
+      - '/deps\/.+/'
+
+  - label: "docs"
+    files:
+      - "*.md"
+    branch:
+      - '/docs{0,1}\/.+/'
+
+  - label: "enhancement"
+    branch:
+      - '/enhance\/.+/'
+
+  - label: "refactor"
+    branch:
+      - '/refactor\/.+/'
+
+  - label: "test"
+    branch:
+      - '/test\/.+/'
+
+  - label: "ci"
+    branch:
+      - '/ci\/.+/'
