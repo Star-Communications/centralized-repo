@@ -33,7 +33,7 @@ jobs:
         id: setConventionBranchNames
         env:
           ADDITIONAL_BRANCH_NAMES: "${{ github.event.inputs.additional-branch-names }}"
-          CONVENTIONAL_BRANCH_NAMES: "feat,fix,docs,ci,refactor,test,other,dependabot,bump"
+          CONVENTIONAL_BRANCH_NAMES: "break,feat,fix,deps,docs,enhance,refactor,test,ci,other,dependabot,bump"
         run: |
           echo "Additional branch names: $ADDITIONAL_BRANCH_NAMES"
           # if additional branch names are provided, concatenate them to convention branch names
