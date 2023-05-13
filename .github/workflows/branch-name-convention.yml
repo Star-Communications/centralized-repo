@@ -24,7 +24,7 @@ on:
         default: ""
 
 jobs:
-  pr-branch-isConvention:
+  branch-name-isConvention:
     runs-on: ubuntu-latest
 
     steps:
@@ -45,15 +45,15 @@ jobs:
           echo "Convention branch names: $CONVENTIONAL_BRANCH_NAMES"
           echo "convention-branch-names=$CONVENTIONAL_BRANCH_NAMES" >> "$GITHUB_OUTPUT"
 
-      - name: Check PR branch name is following convention
+      - name: Check branch name is following convention
         env:
           CONVENTIONAL_BRANCH_NAMES: "${{ steps.setConventionBranchNames.outputs.convention-branch-names }}"
-          PR_BRANCH_NAME: "${{ github.event.inputs.branch-name }}"
+          BRANCH_NAME: "${{ github.event.inputs.branch-name }}"
         run: |
-          echo "PR branch name is $PR_BRANCH_NAME"
-          if [[ "$PR_BRANCH_NAME" =~ ^($CONVENTIONAL_BRANCH_NAMES)/.* ]]; then
-          echo "PR branch name is following convention"
+          echo "Branch name is $BRANCH_NAME"
+          if [[ "$BRANCH_NAME" =~ ^($CONVENTIONAL_BRANCH_NAMES)/.* ]]; then
+          echo "Branch name is following convention"
           else
-          echo "PR branch name is NOT following naming convention"
+          echo "Branch name is NOT following naming convention"
           exit 1
           fi
