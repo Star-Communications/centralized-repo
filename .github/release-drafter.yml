@@ -14,7 +14,7 @@ categories:
   - title: "🚀 Features"
     label: "feature"
 
-  - title: "🐞 Bug Fixes"
+  - title: "🐛 Bug Fixes"
     label: "bugfix"
 
   - title: "📦 Dependencies"
