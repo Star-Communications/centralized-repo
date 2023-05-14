@@ -4,16 +4,15 @@ on:
   workflow_call:
     inputs:
       # INPUT 1
-      github-token:
-        description: "GITHUB_TOKEN of the repository"
-        type: string
-        required: true
-      # INPUT 2
       publish:
-        description: "Release or draft a release"
+        # description: "Release or Draft"
         type: boolean
         required: false
         default: false
+    secrets:
+      # SECRET 1
+      github-token:
+        required: true
 
 jobs:
   release-drafter-org:
@@ -22,7 +21,7 @@ jobs:
       - uses: release-drafter/release-drafter@master
         id: release-drafter
         with:
-          publish: ${{ github.event.inputs.publish }}
+          publish: ${{ inputs.publish }}
           commitish: master
         env:
-          GITHUB_TOKEN: ${{ github.event.inputs.github-token }}
+          GITHUB_TOKEN: ${{ secrets.github-token }}
