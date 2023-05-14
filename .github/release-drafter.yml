@@ -33,8 +33,7 @@ categories:
 
   # default if no label of the previously specified labels is provided
   - title: "💬 Other"
-
-    collapse-after: 10
+    collapse-after: 5
 
 change-template: "- $TITLE @$AUTHOR (#$NUMBER)"
 change-title-escapes: '\<*_&' # You can add # and @ to disable mentions, and add ` to disable code blocks.
