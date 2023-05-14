@@ -32,7 +32,7 @@ jobs:
       - name: Set convention branch names
         id: setConventionBranchNames
         env:
-          ADDITIONAL_BRANCH_NAMES: "${{ github.event.inputs.additional-branch-names }}"
+          ADDITIONAL_BRANCH_NAMES: "${{ inputs.additional-branch-names }}"
           CONVENTIONAL_BRANCH_NAMES: "break,feat,fix,deps,docs,enhance,refactor,test,ci,other,dependabot,bump"
         run: |
           echo "Additional branch names: $ADDITIONAL_BRANCH_NAMES"
@@ -48,7 +48,7 @@ jobs:
       - name: Check branch name is following convention
         env:
           CONVENTIONAL_BRANCH_NAMES: "${{ steps.setConventionBranchNames.outputs.convention-branch-names }}"
-          BRANCH_NAME: "${{ github.event.inputs.branch-name }}"
+          BRANCH_NAME: "${{ inputs.branch-name }}"
         run: |
           echo "Branch name is $BRANCH_NAME"
           if [[ "$BRANCH_NAME" =~ ^($CONVENTIONAL_BRANCH_NAMES)/.* ]]; then
