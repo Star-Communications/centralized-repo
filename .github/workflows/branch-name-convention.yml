@@ -24,7 +24,7 @@ on:
         default: ""
 
 jobs:
-  branch-name-isConvention:
+  branch-name-convention:
     runs-on: ubuntu-latest
 
     steps:
