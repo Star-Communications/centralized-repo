@@ -59,6 +59,7 @@ jobs:
 
       # NOT NEEDED?? As release-drafter step above creates a new version even if no new changes are found.
       - name: Check if release version is already in S3
+        shell: bash
         run: |
           releaseVersion=${{ inputs.release-version }}
           echo "Release version: $releaseVersion"
@@ -70,6 +71,7 @@ jobs:
           fi
 
       - name: Remove '-latest' suffix from any S3 object name
+        shell: bash
         run: |
           latestObjects=$(aws s3 ls "s3://${{ inputs.s3-bucket-name }}/" | grep -Eo "[^ ]*-latest\.zip")
           echo "S3 Objects with 'latest': $latestObjects"
