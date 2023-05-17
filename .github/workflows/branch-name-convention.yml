@@ -6,7 +6,7 @@
 #   1. PR branch name
 #   2. Additional branch names to add to naming conventions (comma separated)
 
-name: Branch name follows convention
+name: Branch name convention
 
 on:
   workflow_call:
@@ -33,7 +33,7 @@ jobs:
         id: setConventionBranchNames
         env:
           ADDITIONAL_BRANCH_NAMES: "${{ inputs.additional-branch-names }}"
-          CONVENTIONAL_BRANCH_NAMES: "break,feat,fix,deps,docs,enhance,refactor,test,ci,other,dependabot,bump"
+          CONVENTIONAL_BRANCH_NAMES: "break,feat,fix,deps,docs,enhance,refactor,test,cicd,other,dependabot,bump"
         run: |
           echo "Additional branch names: $ADDITIONAL_BRANCH_NAMES"
           # if additional branch names are provided, concatenate them to convention branch names
