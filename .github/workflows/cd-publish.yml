@@ -1,0 +1,91 @@
+name: cd-publish
+
+on:
+  workflow_call:
+    inputs:
+      runs-on:
+        description: "The type of runner(s) to use (comma separated)"
+        type: string
+        required: true
+        default: "self-hosted"
+
+      target-version:
+        description: "Version to deploy"
+        type: string
+        required: false
+        default: "latest"
+
+      windows-service-name:
+        description: "Name of the Windows service to deploy"
+        type: string
+        required: true
+
+      s3-release-bucket:
+        description: "Name of the S3 bucket to download the release from"
+        type: string
+        required: true
+
+env:
+  # Path to the executable of Windows service to deploy
+  SERVICE_ROOT_PATH: ""
+  RELEASE_FILE_NAME: ""
+
+# disable permissions for all of the available scopes
+permissions: {}
+
+jobs:
+  deploy-publish:
+    runs-on: ${{ inputs.runs-on }}
+
+    steps:
+      - name: Set executable path of Agent windows service
+        run: |
+          $agentPath=$((Get-CimInstance -ClassName Win32_Service -Filter "Name='${{ inputs.windows-service-name }}'" | Select-Object -ExpandProperty PathName) | Split-Path -Parent | Split-Path -Parent)
+          echo "agentPath - $agentPath"
+          if ($agentPath) { echo "SERVICE_ROOT_PATH=$agentPath" >> $env:GITHUB_ENV }
+
+      - name: Configure AWS credentials
+        id: configure-aws-credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: eu-central-1
+
+      - name: Get release name with '-latest' suffix in S3
+        if: ${{ inputs.target-version == 'latest' }}
+        run: |
+          $latestObjName = aws s3 ls "s3://${{ inputs.s3-release-bucket }}/" | Select-String -Pattern '.*-latest.zip' | Select-Object -Last 1 | ForEach-Object { $_.ToString().Split(' ')[-1] }
+          echo "Latest release version in S3: $latestObjName"
+          # throws an error if $latestObjName contains space or doesn't start with 'v.'
+          if ([string]::IsNullOrWhiteSpace($latestObjName) -or $latestObjName -notmatch '^v.' -or $latestObjName -match '\s') { throw "Invalid release version (S3 object name)." }
+          echo "RELEASE_FILE_NAME=$latestObjName" >> $env:GITHUB_ENV
+
+      - name: Download release zip from S3
+        run: aws s3 cp s3://${{ inputs.s3-release-bucket }}/${{ env.RELEASE_FILE_NAME }} ${{ env.SERVICE_ROOT_PATH }}/releases/${{ env.RELEASE_FILE_NAME }}
+
+      #   - name: Curl backup endpoint (to AgentApi)
+      #     run: curl -X POST https://api.scout-camp.io/backup
+
+      # Self-hosted runners requires elevated privileges to install and start services
+      # cmd (as admin): "config "NAME_OF_YOUR_SERVICE" obj= "NT AUTHORITY\SYSTEM" type= own"
+      - name: Stop Agent windows service
+        run: if ((Get-Service "${{ inputs.windows-service-name }}").Status -eq "Running") { Stop-Service -Name ${{ inputs.windows-service-name }} }
+
+      - name: Unzip release zip
+        run: Expand-Archive -Path "${{ env.SERVICE_ROOT_PATH }}/releases/${{ env.RELEASE_FILE_NAME }}" -DestinationPath "${{ env.SERVICE_ROOT_PATH }}" -Force
+
+      - name: Overwrite appsetting file (if it exists)
+        run: if (Test-Path "${{ env.SERVICE_ROOT_PATH }}/appsettings.json")
+          { Copy-Item -Path "${{ env.SERVICE_ROOT_PATH }}/appsettings.json" -Destination "${{ env.SERVICE_ROOT_PATH }}/publish/appsettings.json" -Force }
+
+      - name: Start Agent windows service
+        run: if ((Get-Service "${{ inputs.windows-service-name }}").Status -eq "Stopped") { Start-Service -Name "${{ inputs.windows-service-name }}" }
+
+      - name: Clean up release folder (delete all files except the latest release)
+        run: Get-ChildItem -Path "${{ env.SERVICE_ROOT_PATH }}/releases" -Exclude ${{ env.RELEASE_FILE_NAME }} | Remove-Item -Recurse -Force
+
+    #   - name: Curl to MonitorHub to confirm version update succeeded or failed
+    #     # ensure this step is executed even if the previous step fails.
+    #     if: always()
+    #     run: curl -X POST https://api.scout-camp.io/monitorhub
