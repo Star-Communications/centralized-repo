@@ -77,7 +77,7 @@ jobs:
       # Self-hosted runners requires elevated privileges to install and start services
       # cmd (as admin): "config "NAME_OF_YOUR_SERVICE" obj= "NT AUTHORITY\SYSTEM" type= own"
       - name: Stop Agent windows service
-        run: if ((Get-Service "${{ inputs.windows-service-name }}").Status -eq "Running") { Stop-Service -Name ${{ inputs.windows-service-name }} }
+        run: if ((Get-Service "${{ inputs.windows-service-name }}").Status -eq "Running") { Stop-Service -Name "${{ inputs.windows-service-name }}" }
 
       - name: Unzip release zip
         run: Expand-Archive -Path "${{ env.SERVICE_ROOT_PATH }}/releases/${{ env.RELEASE_FILE_NAME }}" -DestinationPath "${{ env.SERVICE_ROOT_PATH }}" -Force
