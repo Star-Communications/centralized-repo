@@ -2,6 +2,14 @@ name: cd-publish
 
 on:
   workflow_call:
+    secrets:
+      AWS_ACCESS_KEY_ID:
+        description: "AWS access key ID"
+        required: true
+      AWS_SECRET_ACCESS_KEY:
+        description: "AWS secret access key"
+        required: true
+
     inputs:
       runs-on:
         description: "The type of runner(s) to use (comma separated)"
@@ -12,8 +20,7 @@ on:
       target-version:
         description: "Version to deploy"
         type: string
-        required: false
-        default: "latest"
+        required: true
 
       windows-service-name:
         description: "Name of the Windows service to deploy"
