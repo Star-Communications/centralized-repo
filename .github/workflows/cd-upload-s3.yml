@@ -49,10 +49,6 @@ jobs:
           name: ${{ inputs.artifact-name }}
           path: ./download
 
-      - name: Zip release folder
-        shell: bash
-        run: zip -r ./publish.zip ./download/${{ inputs.release-folder-name }}
-
       # ********** Upload to S3 **********
       - name: Configure AWS credentials from Test account
         uses: aws-actions/configure-aws-credentials@v2
@@ -86,4 +82,4 @@ jobs:
           done
 
       - name: Upload new release zip to S3 (with '-latest' suffix)
-        run: aws s3 cp "./publish.zip" "s3://${{ inputs.s3-bucket-name }}/${{ inputs.release-version }}-latest.zip"
+        run: aws s3 cp "./download/${{ inputs.release-folder-name }}.zip" "s3://${{ inputs.s3-bucket-name }}/${{ inputs.release-version }}-latest.zip"
