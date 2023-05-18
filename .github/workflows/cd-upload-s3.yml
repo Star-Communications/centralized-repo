@@ -57,21 +57,12 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: eu-central-1
 
-      # NOT NEEDED?? As release-drafter step above creates a new version even if no new changes are found.
-      - name: Check if release version is already in S3 (Linux)
-        if: ${{ runner.os }} == 'Linux'
-        run: |
-          releaseVersion=${{ inputs.release-version }}
-          echo "Release version: $releaseVersion"
-          releaseObjects=$(aws s3 ls "s3://${{ inputs.s3-bucket-name }}/" | awk "\$NF ~ /^$releaseVersion/ {print \$NF}")
-          echo "S3 Objects with release version: $releaseObjects"
-          if [ -n "$releaseObjects" ]; then
-              echo "Release version already exists in S3. Exiting..."
-              exit 1
-          fi
+      # Set shell:pwsh so that cmds below work on both Windows & Linux runners. 
+      # (NOTE: Windows runners can't access bash shell - "Access is denied.")
 
-      - name: Check if release version is already in S3 (Windows)
-        if: ${{ runner.os }} == 'Windows'
+      # NOT NEEDED?? As release-drafter step above creates a new version even if no new changes are found.
+      - name: Check if release version is already in S3
+        shell: pwsh
         run: |
           $releaseVersion = ${{ inputs.release-version }}
           echo "Release version: $releaseVersion"
@@ -82,21 +73,8 @@ jobs:
               exit 1
           }
 
-      - name: Remove '-latest' suffix from any S3 object name (Linux)
-        if: ${{ runner.os }} == 'Linux'
-        run: |
-          latestObjects=$(aws s3 ls "s3://${{ inputs.s3-bucket-name }}/" | grep -Eo "[^ ]*-latest\.zip")
-          echo "S3 Objects with 'latest': $latestObjects"
-          for object in $latestObjects; do
-              oldObjName=$(echo $object | awk '{print $NF}')
-              newObjName=${oldObjName/-latest.zip/.zip}
-              echo "Old object name: $oldObjName"
-              echo "New object name: $newObjName"
-              aws s3 mv "s3://${{ inputs.s3-bucket-name }}/$oldObjName" "s3://${{ inputs.s3-bucket-name }}/$newObjName"
-          done
-
       - name: Remove '-latest' suffix from any S3 object name (Windows)
-        if: ${{ runner.os }} == 'Windows'
+        shell: pwsh
         run: |
           $latestObjects = (aws s3 ls "s3://${{ inputs.s3-bucket-name }}/" | Select-String -Pattern "(\S+)-latest\.zip" | Foreach-Object { $_.Matches.Groups[1].Value + ".zip" })
           echo "S3 Objects with 'latest': $latestObjects"
