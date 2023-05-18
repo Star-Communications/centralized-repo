@@ -58,8 +58,8 @@ jobs:
           aws-region: eu-central-1
 
       # NOT NEEDED?? As release-drafter step above creates a new version even if no new changes are found.
-      - name: Check if release version is already in S3
-        shell: bash
+      - name: Check if release version is already in S3 (Linux)
+        if: ${{ runner.os }} == 'Linux'
         run: |
           releaseVersion=${{ inputs.release-version }}
           echo "Release version: $releaseVersion"
@@ -70,8 +70,20 @@ jobs:
               exit 1
           fi
 
-      - name: Remove '-latest' suffix from any S3 object name
-        shell: bash
+      - name: Check if release version is already in S3 (Windows)
+        if: ${{ runner.os }} == 'Windows'
+        run: |
+          $releaseVersion = ${{ inputs.release-version }}
+          echo "Release version: $releaseVersion"
+          $releaseObjects = (aws s3 ls "s3://${{ inputs.s3-bucket-name }}/" | Where-Object {$_.Key -match "^$releaseVersion"}).Key
+          echo "S3 Objects with release version: $releaseObjects"
+          if ($releaseObjects) {
+              echo "Release version already exists in S3. Exiting..."
+              exit 1
+          }
+
+      - name: Remove '-latest' suffix from any S3 object name (Linux)
+        if: ${{ runner.os }} == 'Linux'
         run: |
           latestObjects=$(aws s3 ls "s3://${{ inputs.s3-bucket-name }}/" | grep -Eo "[^ ]*-latest\.zip")
           echo "S3 Objects with 'latest': $latestObjects"
@@ -82,6 +94,19 @@ jobs:
               echo "New object name: $newObjName"
               aws s3 mv "s3://${{ inputs.s3-bucket-name }}/$oldObjName" "s3://${{ inputs.s3-bucket-name }}/$newObjName"
           done
+
+      - name: Remove '-latest' suffix from any S3 object name (Windows)
+        if: ${{ runner.os }} == 'Windows'
+        run: |
+          $latestObjects = (aws s3 ls "s3://${{ inputs.s3-bucket-name }}/" | Select-String -Pattern "(\S+)-latest\.zip" | Foreach-Object { $_.Matches.Groups[1].Value + ".zip" })
+          echo "S3 Objects with 'latest': $latestObjects"
+          foreach ($object in $latestObjects) {
+              $oldObjName = $object -replace "-latest.zip", ".zip"
+              $newObjName = $oldObjName
+              echo "Old object name: $oldObjName"
+              echo "New object name: $newObjName"
+              aws s3 mv "s3://${{ inputs.s3-bucket-name }}/$oldObjName" "s3://${{ inputs.s3-bucket-name }}/$newObjName"
+          }
 
       - name: Upload new release zip to S3 (with '-latest' suffix)
         run: aws s3 cp "./download/${{ inputs.release-folder-name }}.zip" "s3://${{ inputs.s3-bucket-name }}/${{ inputs.release-version }}-latest.zip"
