@@ -11,12 +11,17 @@ name: Branch name convention
 on:
   workflow_call:
     inputs:
-      # INPUT 1
+      runs-on:
+        description: "Type of runner(s) to use (comma separated)"
+        type: string
+        required: false
+        default: "ubuntu-latest"
+
       branch-name:
         description: "Branch name"
         type: string
         required: true
-      # INPUT 2
+
       additional-branch-names:
         description: "Additional branch names (comma separated)"
         type: string
@@ -25,35 +30,39 @@ on:
 
 jobs:
   branch-name-convention:
-    runs-on: ubuntu-latest
+    runs-on: ${{ inputs.runs-on }}
 
     steps:
       # concatenate additional branch names to convention branch names defined below ('dependabot' & 'bump' are used by dependabot)
       - name: Set convention branch names
         id: setConventionBranchNames
         env:
-          ADDITIONAL_BRANCH_NAMES: "${{ inputs.additional-branch-names }}"
+          OS: ${{ runner.os}}
           CONVENTIONAL_BRANCH_NAMES: "break,feat,fix,deps,docs,enhance,refactor,test,cicd,other,dependabot,bump"
         run: |
-          echo "Additional branch names: $ADDITIONAL_BRANCH_NAMES"
-          # if additional branch names are provided, concatenate them to convention branch names
-          if [ -n "${ADDITIONAL_BRANCH_NAMES}" ]; then
-              CONVENTIONAL_BRANCH_NAMES="$CONVENTIONAL_BRANCH_NAMES,$ADDITIONAL_BRANCH_NAMES"
-          fi
+          echo "Additional branch names: ${{ inputs.additional-branch-names }}"
+          # if additional branch names are provided, concatenate them to "convention branch names"
+          if (${{ inputs.additional-branch-names }}) {
+              $CONVENTIONAL_BRANCH_NAMES = "$CONVENTIONAL_BRANCH_NAMES,${{ inputs.additional-branch-names }}"
+          }
           # split by comma and remove spaces, then join with |
-          CONVENTIONAL_BRANCH_NAMES="${CONVENTIONAL_BRANCH_NAMES//,/|}";
+          $CONVENTIONAL_BRANCH_NAMES = ($CONVENTIONAL_BRANCH_NAMES -replace ',', '|').Trim()
           echo "Convention branch names: $CONVENTIONAL_BRANCH_NAMES"
-          echo "convention-branch-names=$CONVENTIONAL_BRANCH_NAMES" >> "$GITHUB_OUTPUT"
+          if ("$OS" -eq "Windows") {
+              echo "convention-branch-names=$CONVENTIONAL_BRANCH_NAMES" >> "$env:GITHUB_OUTPUT"
+          } else {
+              echo "convention-branch-names=$CONVENTIONAL_BRANCH_NAMES" >> "$GITHUB_OUTPUT"
+          }
 
       - name: Check branch name is following convention
         env:
           CONVENTIONAL_BRANCH_NAMES: "${{ steps.setConventionBranchNames.outputs.convention-branch-names }}"
-          BRANCH_NAME: "${{ inputs.branch-name }}"
         run: |
-          echo "Branch name is $BRANCH_NAME"
-          if [[ "$BRANCH_NAME" =~ ^($CONVENTIONAL_BRANCH_NAMES)/.* ]]; then
-          echo "Branch name is following convention"
-          else
-          echo "Branch name is NOT following naming convention"
-          exit 1
-          fi
+          echo "Branch name is ${{ inputs.branch-name }}"
+          if ("${{ inputs.branch-name }}" -match "^($CONVENTIONAL_BRANCH_NAMES)/.*") {
+              echo "Branch name is following convention"
+          } else {
+              echo "Branch name is NOT following naming convention"
+              echo "Branch name should start with one of the following: $CONVENTIONAL_BRANCH_NAMES"
+              exit 1
+          }
