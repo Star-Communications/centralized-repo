@@ -76,7 +76,7 @@ jobs:
           echo "RELEASE_FILE_NAME=$latestObjName" >> $env:GITHUB_ENV
 
       - name: Download release zip from S3
-        run: aws s3 cp "s3://${{ inputs.s3-release-bucket }}/${{ env.RELEASE_FILE_NAME }}" "${{ env.SERVICE_ROOT_PATH }}/releases/${{ env.RELEASE_FILE_NAME }}"
+        run: aws s3 cp "s3://${{ inputs.s3-release-bucket }}/${{ inputs.s3-prefix }}/${{ env.RELEASE_FILE_NAME }}" "${{ env.SERVICE_ROOT_PATH }}/releases/${{ env.RELEASE_FILE_NAME }}"
 
       #   - name: Curl backup endpoint (to AgentApi)
       #     run: curl -X POST https://api.scout-camp.io/backup
