@@ -14,15 +14,15 @@ on:
       runs-on:
         description: "Type of runner(s) to use (comma separated)"
         type: string
-        required: true
-        default: "self-hosted"
+        required: false
+        default: "ubuntu-latest"
 
       release-folder-name:
         description: "Name of the folder containing the release files (eg. 'publish' or 'dist')"
         type: string
         required: true
 
-      artifact-name:
+      build-artifact-name:
         description: "Name of the artifact (release files) to download"
         type: string
         required: true
@@ -37,6 +37,11 @@ on:
         type: string
         required: true
 
+      s3-prefix:
+        description: "Name of the S3 bucket prefix (subfolder) to upload to"
+        type: string
+        required: true
+
 jobs:
   upload-release:
     runs-on: ${{ inputs.runs-on }}
@@ -46,7 +51,7 @@ jobs:
       - name: Download release artifact
         uses: actions/download-artifact@v3
         with:
-          name: ${{ inputs.artifact-name }}
+          name: ${{ inputs.build-artifact-name }}
           path: ./download
 
       # ********** Upload to S3 **********
@@ -57,34 +62,33 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: eu-central-1
 
-      # Set shell:pwsh so that cmds below work on both Windows & Linux runners. 
+      # Set shell:pwsh so that cmds below work on both Windows & Linux runners.
       # (NOTE: Windows runners can't access bash shell - "Access is denied.")
 
       # NOT NEEDED?? As release-drafter step above creates a new version even if no new changes are found.
       - name: Check if release version is already in S3
         shell: pwsh
         run: |
-          $releaseVersion = ${{ inputs.release-version }}
+          $releaseVersion = "${{ inputs.release-version }}"
           echo "Release version: $releaseVersion"
-          $releaseObjects = (aws s3 ls "s3://${{ inputs.s3-bucket-name }}/" | Where-Object {$_.Key -match "^$releaseVersion"}).Key
+          $releaseObjects = @(aws s3api list-objects-v2 --bucket "${{ inputs.s3-bucket-name }}" --prefix "${{ inputs.s3-prefix }}" --query "Contents[?contains(Key, '$releaseVersion')].Key" --output text)
           echo "S3 Objects with release version: $releaseObjects"
           if ($releaseObjects) {
-              echo "Release version already exists in S3. Exiting..."
-              exit 1
+          echo "Release version already exists in S3. Exiting..."
+          exit 1
           }
 
       - name: Remove '-latest' suffix from any S3 object name (Windows)
         shell: pwsh
         run: |
-          $latestObjects = (aws s3 ls "s3://${{ inputs.s3-bucket-name }}/" | Select-String -Pattern "(\S+)-latest\.zip" | Foreach-Object { $_.Matches.Groups[1].Value + ".zip" })
-          echo "S3 Objects with 'latest': $latestObjects"
-          foreach ($object in $latestObjects) {
-              $oldObjName = $object -replace "-latest.zip", ".zip"
-              $newObjName = $oldObjName
-              echo "Old object name: $oldObjName"
+          $latestObjectKeys = @(aws s3api list-objects-v2 --bucket "${{ inputs.s3-bucket-name }}" --prefix "${{ inputs.s3-prefix }}" --query 'Contents[?ends_with(Key, `-latest.zip`)].Key' --output text).Split()
+          echo "S3 Objects with 'latest': $latestObjectKeys"
+          foreach ($object in $latestObjectKeys) {
+              $newObjName = $object.Replace("${{ inputs.s3-prefix }}/","").Replace("-latest.zip",".zip")
+              echo "Old object name: $object"
               echo "New object name: $newObjName"
-              aws s3 mv "s3://${{ inputs.s3-bucket-name }}/$oldObjName" "s3://${{ inputs.s3-bucket-name }}/$newObjName"
+              aws s3 mv "s3://${{ inputs.s3-bucket-name }}/$object" "s3://${{ inputs.s3-bucket-name }}/${{ inputs.s3-prefix }}/$newObjName"
           }
 
       - name: Upload new release zip to S3 (with '-latest' suffix)
-        run: aws s3 cp "./download/${{ inputs.release-folder-name }}.zip" "s3://${{ inputs.s3-bucket-name }}/${{ inputs.release-version }}-latest.zip"
+        run: aws s3 cp "./download/${{ inputs.release-folder-name }}.zip" "s3://${{ inputs.s3-bucket-name }}/${{ inputs.s3-prefix }}/${{ inputs.release-version }}-latest.zip"
