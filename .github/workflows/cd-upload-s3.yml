@@ -69,25 +69,28 @@ jobs:
       - name: Check if release version is already in S3
         shell: pwsh
         run: |
-          $releaseVersion = "${{ inputs.release-version }}"
-          echo "Release version: $releaseVersion"
-          $releaseObjects = @(aws s3api list-objects-v2 --bucket "${{ inputs.s3-bucket-name }}" --prefix "${{ inputs.s3-prefix }}" --query "Contents[?contains(Key, '$releaseVersion')].Key" --output text)
+          echo "Release version: ${{ inputs.release-version }}"
+          $releaseObjects = @(aws s3api list-objects-v2 --bucket "${{ inputs.s3-bucket-name }}" --prefix "${{ inputs.s3-prefix }}" --query "Contents[?contains(Key, '${{ inputs.release-version }}')].Key" --output text)
           echo "S3 Objects with release version: $releaseObjects"
           if ($releaseObjects) {
-          echo "Release version already exists in S3. Exiting..."
-          exit 1
+            throw "Release version already exists in S3."
           }
 
-      - name: Remove '-latest' suffix from any S3 object name (Windows)
+      - name: Remove '-latest' suffix from any S3 object name
         shell: pwsh
         run: |
-          $latestObjectKeys = @(aws s3api list-objects-v2 --bucket "${{ inputs.s3-bucket-name }}" --prefix "${{ inputs.s3-prefix }}" --query 'Contents[?ends_with(Key, `-latest.zip`)].Key' --output text).Split()
-          echo "S3 Objects with 'latest': $latestObjectKeys"
-          foreach ($object in $latestObjectKeys) {
+          $latestObjectKeys = @(aws s3api list-objects-v2 --bucket "${{ inputs.s3-bucket-name }}" --prefix "${{ inputs.s3-prefix }}" --query 'Contents[?ends_with(Key, `-latest.zip`)].Key' --output text)
+          echo "S3 Objects containing 'latest': $latestObjectKeys"
+          if (-not [string]::IsNullOrEmpty($latestObjectKeys)) {
+            $latestObjectKeys = $latestObjectKeys.Split()
+            foreach ($object in $latestObjectKeys) {
               $newObjName = $object.Replace("${{ inputs.s3-prefix }}/","").Replace("-latest.zip",".zip")
               echo "Old object name: $object"
               echo "New object name: $newObjName"
               aws s3 mv "s3://${{ inputs.s3-bucket-name }}/$object" "s3://${{ inputs.s3-bucket-name }}/${{ inputs.s3-prefix }}/$newObjName"
+            }
+          } else {
+            echo "No objects containing '-latest' found in S3 bucket."
           }
 
       - name: Upload new release zip to S3 (with '-latest' suffix)
