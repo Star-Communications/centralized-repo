@@ -64,10 +64,10 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: eu-central-1
 
-      - name: Get release name with '-latest' suffix in S3
+      - name: Get S3 object name of "target-version"
         if: ${{ inputs.target-version == 'latest' }}
         run: |
-          $latestObjName = @(aws s3api list-objects-v2 --bucket "${{ inputs.s3-release-bucket }}" --prefix "${{ inputs.s3-prefix }}" --query "Contents[?contains(Key, '-latest.zip')].Key" --output text)
+          $latestObjName = @(aws s3api list-object-versions --bucket "${{ inputs.s3-release-bucket }}" --prefix "${{ inputs.s3-prefix }}" --query "reverse(sort_by(Versions[?contains(Key, '${{ inputs.target-version}}')], &LastModified))[0].Key" --output text).replace("${{ inputs.s3-prefix }}/", "")
           echo "Latest release version in S3: $latestObjName"
           # throw an error if $latestObjName IsNullOrWhiteSpace, doesn't start with 'v.' or contains any whitespace character (such as a space, tab, or line break).
           if ([string]::IsNullOrWhiteSpace($latestObjName) -or $latestObjName -notmatch '^v.' -or $latestObjName -match '\s') {
@@ -76,7 +76,7 @@ jobs:
           echo "RELEASE_FILE_NAME=$latestObjName" >> $env:GITHUB_ENV
 
       - name: Download release zip from S3
-        run: aws s3 cp s3://${{ inputs.s3-release-bucket }}/${{ env.RELEASE_FILE_NAME }} ${{ env.SERVICE_ROOT_PATH }}/releases/${{ env.RELEASE_FILE_NAME }}
+        run: aws s3 cp "s3://${{ inputs.s3-release-bucket }}/${{ env.RELEASE_FILE_NAME }}" "${{ env.SERVICE_ROOT_PATH }}/releases/${{ env.RELEASE_FILE_NAME }}"
 
       #   - name: Curl backup endpoint (to AgentApi)
       #     run: curl -X POST https://api.scout-camp.io/backup
