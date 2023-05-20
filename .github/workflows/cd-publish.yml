@@ -37,10 +37,20 @@ on:
         type: string
         required: true
 
+      build-folder-name:
+        description: "Name of the folder containing the build files (eg. 'publish' or 'dist')"
+        type: string
+        required: true
+
+      env-file-name:
+        description: "Name of the environment file (eg. 'appsettings.json', 'appsettings.prod.json' or '.env')"
+        type: string
+        required: true
+
 env:
   # Path to the executable of Windows service to deploy
   SERVICE_ROOT_PATH: ""
-  RELEASE_FILE_NAME: ""
+  TARGET_RELEASE_FOLDER: ""
 
 # disable permissions for all of the available scopes
 permissions: {}
@@ -50,12 +60,14 @@ jobs:
     runs-on: ${{ inputs.runs-on }}
 
     steps:
+      # ********** Get executable path of windows service **********
       - name: Set executable path of Agent windows service
         run: |
           $agentPath=$((Get-CimInstance -ClassName Win32_Service -Filter "Name='${{ inputs.windows-service-name }}'" | Select-Object -ExpandProperty PathName) | Split-Path -Parent | Split-Path -Parent)
           echo "agentPath - $agentPath"
           if ($agentPath) { echo "SERVICE_ROOT_PATH=$agentPath" >> $env:GITHUB_ENV }
 
+      # ********** Download release folder from S3 **********
       - name: Configure AWS credentials
         id: configure-aws-credentials
         uses: aws-actions/configure-aws-credentials@v2
@@ -64,40 +76,39 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: eu-central-1
 
-      - name: Get S3 object name of "target-version"
-        if: ${{ inputs.target-version == 'latest' }}
+      - name: Get S3 object name of release "target-version"
         run: |
-          $latestObjName = @(aws s3api list-object-versions --bucket "${{ inputs.s3-release-bucket }}" --prefix "${{ inputs.s3-prefix }}" --query "reverse(sort_by(Versions[?contains(Key, '${{ inputs.target-version}}')], &LastModified))[0].Key" --output text).replace("${{ inputs.s3-prefix }}/", "")
-          echo "Latest release version in S3: $latestObjName"
-          # throw an error if $latestObjName IsNullOrWhiteSpace, doesn't start with 'v.' or contains any whitespace character (such as a space, tab, or line break).
-          if ([string]::IsNullOrWhiteSpace($latestObjName) -or $latestObjName -notmatch '^v.' -or $latestObjName -match '\s') {
-            throw "Release version not found in S3. Invalid S3 object name."
+          $targetReleaseObj = @(aws s3api list-object-versions --bucket "${{ inputs.s3-release-bucket }}" --prefix "${{ inputs.s3-prefix }}" --query "reverse(sort_by(Versions[?contains(Key, '${{ inputs.target-version}}.zip')], &LastModified))[0].Key" --output text).replace("${{ inputs.s3-prefix }}/", "")
+          echo "Target release object in S3: $targetReleaseObj"
+          # throw an error if $targetReleaseObj IsNullOrWhiteSpace
+          if ([string]::IsNullOrWhiteSpace($targetReleaseObj)) {
+            throw "Target release version not found in S3. Invalid S3 object name."
           }
-          echo "RELEASE_FILE_NAME=$latestObjName" >> $env:GITHUB_ENV
+          echo "TARGET_RELEASE_FOLDER=$targetReleaseObj" >> $env:GITHUB_ENV
 
       - name: Download release zip from S3
-        run: aws s3 cp "s3://${{ inputs.s3-release-bucket }}/${{ inputs.s3-prefix }}/${{ env.RELEASE_FILE_NAME }}" "${{ env.SERVICE_ROOT_PATH }}/releases/${{ env.RELEASE_FILE_NAME }}"
+        run: aws s3 cp "s3://${{ inputs.s3-release-bucket }}/${{ inputs.s3-prefix }}/${{ env.TARGET_RELEASE_FOLDER }}" "${{ env.SERVICE_ROOT_PATH }}/releases/${{ env.TARGET_RELEASE_FOLDER }}"
 
+      # ********** Update windows serivce **********
       #   - name: Curl backup endpoint (to AgentApi)
       #     run: curl -X POST https://api.scout-camp.io/backup
 
-      # Self-hosted runners requires elevated privileges to install and start services
-      # cmd (as admin): "config "NAME_OF_YOUR_SERVICE" obj= "NT AUTHORITY\SYSTEM" type= own"
+      # Self-hosted runners requires elevated privileges to install and start services - cmd (as admin) run: "config "NAME_OF_YOUR_SERVICE" obj= "NT AUTHORITY\SYSTEM" type= own"
       - name: Stop Agent windows service
         run: if ((Get-Service "${{ inputs.windows-service-name }}").Status -eq "Running") { Stop-Service -Name "${{ inputs.windows-service-name }}" }
 
       - name: Unzip release zip
-        run: Expand-Archive -Path "${{ env.SERVICE_ROOT_PATH }}/releases/${{ env.RELEASE_FILE_NAME }}" -DestinationPath "${{ env.SERVICE_ROOT_PATH }}" -Force
+        run: Expand-Archive -Path "${{ env.SERVICE_ROOT_PATH }}/releases/${{ env.TARGET_RELEASE_FOLDER }}" -DestinationPath "${{ env.SERVICE_ROOT_PATH }}" -Force
 
-      - name: Overwrite appsetting file (if it exists)
-        run: if (Test-Path "${{ env.SERVICE_ROOT_PATH }}/appsettings.json")
-          { Copy-Item -Path "${{ env.SERVICE_ROOT_PATH }}/appsettings.json" -Destination "${{ env.SERVICE_ROOT_PATH }}/publish/appsettings.json" -Force }
+      - name: Overwrite env file (if it exists)
+        run: if (Test-Path "${{ env.SERVICE_ROOT_PATH }}/${{ inputs.env-file-name}}")
+          { Copy-Item -Path "${{ env.SERVICE_ROOT_PATH }}/${{ inputs.env-file-name}}" -Destination "${{ env.SERVICE_ROOT_PATH }}/${{ inputs.build-folder-name }}/${{ inputs.env-file-name}}" -Force }
 
       - name: Start Agent windows service
         run: if ((Get-Service "${{ inputs.windows-service-name }}").Status -eq "Stopped") { Start-Service -Name "${{ inputs.windows-service-name }}" }
 
       - name: Clean up release folder (delete all files except the latest release)
-        run: Get-ChildItem -Path "${{ env.SERVICE_ROOT_PATH }}/releases" -Exclude ${{ env.RELEASE_FILE_NAME }} | Remove-Item -Recurse -Force
+        run: Get-ChildItem -Path "${{ env.SERVICE_ROOT_PATH }}/releases" -Exclude ${{ env.TARGET_RELEASE_FOLDER }} | Remove-Item -Recurse -Force
 
     #   - name: Curl to MonitorHub to confirm version update succeeded or failed
     #     # ensure this step is executed even if the previous step fails.
