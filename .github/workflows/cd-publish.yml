@@ -49,9 +49,8 @@ env:
   TARGET_RELEASE_S3_OBJECT: ""
   UNZIPPED_RELEASE_FOLDER: ""
 
-# disable permissions for all of the available scopes
 permissions:
-    id-token: write
+    id-token: write # This is required for OIDC requesting the JWT
 
 jobs:
   deploy-publish:
