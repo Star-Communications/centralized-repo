@@ -37,6 +37,10 @@ jobs:
     runs-on: ${{ inputs.runs-on }}
 
     steps:
+      - name: Log runner label(s)
+        run: |
+          echo "runs-on: ${{ inputs.runs-on }}"
+
       # ********** Download release file from artifact **********
       - name: Download release artifact
         uses: actions/download-artifact@v3
