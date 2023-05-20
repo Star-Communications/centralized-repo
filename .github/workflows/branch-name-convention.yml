@@ -49,14 +49,14 @@ jobs:
           $CONVENTIONAL_BRANCH_NAMES = ($CONVENTIONAL_BRANCH_NAMES -replace ',', '|').Trim()
           echo "Convention branch names: $CONVENTIONAL_BRANCH_NAMES"
           if ("$OS" -eq "Windows") {
-              echo "convention-branch-names=$CONVENTIONAL_BRANCH_NAMES" >> "$env:GITHUB_OUTPUT"
+              echo "conventionBranchNames=$CONVENTIONAL_BRANCH_NAMES" >> "$env:GITHUB_OUTPUT"
           } else {
-              echo "convention-branch-names=$CONVENTIONAL_BRANCH_NAMES" >> "$GITHUB_OUTPUT"
+              echo "conventionBranchNames=$CONVENTIONAL_BRANCH_NAMES" >> "$GITHUB_OUTPUT"
           }
 
       - name: Check branch name is following convention
         env:
-          CONVENTIONAL_BRANCH_NAMES: "${{ steps.setConventionBranchNames.outputs.convention-branch-names }}"
+          CONVENTIONAL_BRANCH_NAMES: "${{ steps.setConventionBranchNames.outputs.conventionBranchNames }}"
         run: |
           echo "Branch name is ${{ inputs.branch-name }}"
           if ("${{ inputs.branch-name }}" -match "^($CONVENTIONAL_BRANCH_NAMES)/.*") {
