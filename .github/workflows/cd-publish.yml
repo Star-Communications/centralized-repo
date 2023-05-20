@@ -85,7 +85,7 @@ jobs:
 
       - name: Get S3 object name of release "target-version"
         run: |
-          $targetReleaseObj = @(aws s3api list-objects-v2 --bucket "${{ inputs.s3-release-bucket }}" --prefix "${{ inputs.s3-prefix }}" --query "reverse(sort_by(Contents[?contains(Key, '${{ inputs.target-version}}.zip')], &LastModified))[0].Key" --output text).replace("${{ inputs.s3-prefix }}/", "")
+          $targetReleaseObj = @(aws s3api list-objects-v2 --bucket "${{ inputs.s3-release-bucket }}"  --query "reverse(sort_by(Contents[?contains(Key, '${{ inputs.target-version}}.zip')], &LastModified))[0].Key" --output text).replace("${{ inputs.s3-prefix }}/", "")
           echo "Target release object in S3: $targetReleaseObj"
           # throw an error if $targetReleaseObj IsNullOrWhiteSpace
           if ([string]::IsNullOrWhiteSpace($targetReleaseObj)) {
