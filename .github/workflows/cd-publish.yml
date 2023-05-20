@@ -62,7 +62,6 @@ jobs:
         shell: pwsh
         run: |
           echo "runs-on: ${{ inputs.runs-on }}"
-          echo "role ARN: ${{ secrets.AWS_ROLE_TO_ASSUME }}"
           if ('${{ inputs.runs-on }}' -eq 'ubuntu-latest') {
             echo "This workflow is not intended to run on ubuntu-latest. Please use self-hosted runner label(s)."
             exit 1
@@ -86,7 +85,7 @@ jobs:
 
       - name: Get S3 object name of release "target-version"
         run: |
-          $targetReleaseObj = @(aws s3api list-objects --bucket "${{ inputs.s3-release-bucket }}" --prefix "${{ inputs.s3-prefix }}" --query "reverse(sort_by(Versions[?contains(Key, '${{ inputs.target-version}}.zip')], &LastModified))[0].Key" --output text).replace("${{ inputs.s3-prefix }}/", "")
+          $targetReleaseObj = @(aws s3api list-objects --bucket "${{ inputs.s3-release-bucket }}" --prefix "${{ inputs.s3-prefix }}" --query "reverse(sort_by(Contents[?contains(Key, '${{ inputs.target-version}}.zip')], &LastModified))[0].Key" --output text).replace("${{ inputs.s3-prefix }}/", "")
           echo "Target release object in S3: $targetReleaseObj"
           # throw an error if $targetReleaseObj IsNullOrWhiteSpace
           if ([string]::IsNullOrWhiteSpace($targetReleaseObj)) {
