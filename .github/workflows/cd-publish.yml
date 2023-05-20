@@ -112,7 +112,7 @@ jobs:
       - name: Unzip release zip
         run: |
           Expand-Archive -Path "${{ env.SERVICE_ROOT_PATH }}/releases/${{ env.TARGET_RELEASE_S3_OBJECT }}".replace("-latest", "") -DestinationPath "${{ env.SERVICE_ROOT_PATH }}" -Force
-          $unzippedFolderName=${{ env.TARGET_RELEASE_S3_OBJECT }} -replace '-latest', '' -replace '.zip', ''
+          $unzippedFolderName="${{ env.TARGET_RELEASE_S3_OBJECT }}".replace('-latest', '').replace('.zip', '')
           echo "UNZIPPED_RELEASE_FOLDER=$unzippedFolderName" >> "$env:GITHUB_ENV"
 
       - name: Overwrite new release build folder to existing build folder
