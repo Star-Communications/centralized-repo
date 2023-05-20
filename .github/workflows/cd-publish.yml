@@ -15,7 +15,6 @@ on:
         description: "The type of runner(s) to use (comma separated)"
         type: string
         required: true
-        default: "self-hosted"
 
       target-version:
         description: "Version to deploy"
@@ -63,6 +62,7 @@ jobs:
       - name: Fail if runs-on is 'ubuntu-latest'
         if: ${{ inputs.runs-on }} == 'ubuntu-latest'
         run: |
+          echo "runs-on: ${{ inputs.runs-on }}"
           echo "This workflow is not intended to run on ubuntu-latest. Please use self-hosted runner label(s)."
           exit 1
 
