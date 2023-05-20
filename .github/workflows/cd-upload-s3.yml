@@ -3,11 +3,8 @@ name: cd-upload-s3
 on:
   workflow_call:
     secrets:
-      AWS_ACCESS_KEY_ID:
-        description: "AWS access key ID"
-        required: true
-      AWS_SECRET_ACCESS_KEY:
-        description: "AWS secret access key"
+      AWS_ROLE_TO_ASSUME:
+        description: "ARN of the AWS role to assume"
         required: true
 
     inputs:
@@ -52,8 +49,8 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v2
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          role-session-name: UploadReleaseToS3
           aws-region: eu-central-1
 
       # Set shell:pwsh so that cmds below work on both Windows & Linux runners.
