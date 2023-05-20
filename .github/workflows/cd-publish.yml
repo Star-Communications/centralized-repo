@@ -98,7 +98,7 @@ jobs:
       - name: Download release zip from S3
         shell: pwsh
         # download release zip from S3 (if it doesn't exist locally)
-        run: if(!(Test-Path "${{ env.SERVICE_ROOT_PATH }}/releases/${{ env.TARGET_RELEASE_S3_OBJECT }}".replace("-latest", ""))
+        run: if(!(Test-Path "${{ env.SERVICE_ROOT_PATH }}/releases/${{ env.TARGET_RELEASE_S3_OBJECT }}".replace("-latest", "")))
           { aws s3 cp "s3://${{ inputs.s3-release-bucket }}/${{ inputs.s3-prefix }}/${{ env.TARGET_RELEASE_S3_OBJECT }}" "${{ env.SERVICE_ROOT_PATH }}/releases/${{ env.TARGET_RELEASE_S3_OBJECT }}".replace("-latest", "") }
 
       # ********** Update windows serivce **********
