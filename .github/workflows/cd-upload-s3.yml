@@ -29,6 +29,10 @@ on:
         type: string
         required: true
 
+permissions:
+  id-token: write
+  contents: read
+
 jobs:
   upload-release:
     runs-on: ${{ inputs.runs-on }}
