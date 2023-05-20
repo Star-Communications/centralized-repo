@@ -50,7 +50,8 @@ env:
   UNZIPPED_RELEASE_FOLDER: ""
 
 # disable permissions for all of the available scopes
-permissions: {}
+permissions:
+    id-token: write
 
 jobs:
   deploy-publish:
@@ -84,7 +85,7 @@ jobs:
 
       - name: Get S3 object name of release "target-version"
         run: |
-          $targetReleaseObj = @(aws s3api list-object-versions --bucket "${{ inputs.s3-release-bucket }}" --prefix "${{ inputs.s3-prefix }}" --query "reverse(sort_by(Versions[?contains(Key, '${{ inputs.target-version}}.zip')], &LastModified))[0].Key" --output text).replace("${{ inputs.s3-prefix }}/", "")
+          $targetReleaseObj = @(aws s3api list-objects --bucket "${{ inputs.s3-release-bucket }}" --prefix "${{ inputs.s3-prefix }}" --query "reverse(sort_by(Versions[?contains(Key, '${{ inputs.target-version}}.zip')], &LastModified))[0].Key" --output text).replace("${{ inputs.s3-prefix }}/", "")
           echo "Target release object in S3: $targetReleaseObj"
           # throw an error if $targetReleaseObj IsNullOrWhiteSpace
           if ([string]::IsNullOrWhiteSpace($targetReleaseObj)) {
