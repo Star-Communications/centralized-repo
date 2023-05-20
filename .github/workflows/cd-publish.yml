@@ -60,6 +60,12 @@ jobs:
     runs-on: ${{ inputs.runs-on }}
 
     steps:
+      - name: Fail if runs-on is 'ubuntu-latest'
+        if: ${{ inputs.runs-on }} == 'ubuntu-latest'
+        run: |
+          echo "This workflow is not intended to run on ubuntu-latest. Please use self-hosted runner label(s)."
+          exit 1
+
       # ********** Get executable path of windows service **********
       - name: Set executable path of Agent windows service
         run: |
@@ -99,6 +105,12 @@ jobs:
 
       - name: Unzip release zip
         run: Expand-Archive -Path "${{ env.SERVICE_ROOT_PATH }}/releases/${{ env.TARGET_RELEASE_FOLDER }}" -DestinationPath "${{ env.SERVICE_ROOT_PATH }}" -Force
+    
+      - name: Overwrite new release build folder to existing build folder
+        run: Copy-Item -Path "${{ env.SERVICE_ROOT_PATH }}/${{ env.TARGET_RELEASE_FOLDER }}/${{ inputs.build-folder-name }}" -Destination "${{ env.SERVICE_ROOT_PATH }}/${{ inputs.build-folder-name }}" -Recurse -Force
+
+      - name: Delete extracted release folder
+        run: Remove-Item -Path "${{ env.SERVICE_ROOT_PATH }}/${{ env.TARGET_RELEASE_FOLDER }}" -Recurse -Force
 
       - name: Overwrite env file (if it exists)
         run: if (Test-Path "${{ env.SERVICE_ROOT_PATH }}/${{ inputs.env-file-name}}")
