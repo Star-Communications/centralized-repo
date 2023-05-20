@@ -49,7 +49,8 @@ on:
 env:
   # Path to the executable of Windows service to deploy
   SERVICE_ROOT_PATH: ""
-  TARGET_RELEASE_FOLDER: ""
+  TARGET_RELEASE_S3_OBJECT: ""
+  UNZIPPED_RELEASE_FOLDER: ""
 
 # disable permissions for all of the available scopes
 permissions: {}
@@ -92,10 +93,10 @@ jobs:
           if ([string]::IsNullOrWhiteSpace($targetReleaseObj)) {
             throw "Target release version not found in S3. Invalid S3 object name."
           }
-          echo "TARGET_RELEASE_FOLDER=$targetReleaseObj" >> $env:GITHUB_ENV
+          echo "TARGET_RELEASE_S3_OBJECT=$targetReleaseObj" >> $env:GITHUB_ENV
 
       - name: Download release zip from S3
-        run: aws s3 cp "s3://${{ inputs.s3-release-bucket }}/${{ inputs.s3-prefix }}/${{ env.TARGET_RELEASE_FOLDER }}" "${{ env.SERVICE_ROOT_PATH }}/releases/${{ env.TARGET_RELEASE_FOLDER }}"
+        run: aws s3 cp "s3://${{ inputs.s3-release-bucket }}/${{ inputs.s3-prefix }}/${{ env.TARGET_RELEASE_S3_OBJECT }}" "${{ env.SERVICE_ROOT_PATH }}/releases/${{ env.TARGET_RELEASE_S3_OBJECT }}".replace("-latest", "")
 
       # ********** Update windows serivce **********
       #   - name: Curl backup endpoint (to AgentApi)
@@ -106,13 +107,15 @@ jobs:
         run: if ((Get-Service "${{ inputs.windows-service-name }}").Status -eq "Running") { Stop-Service -Name "${{ inputs.windows-service-name }}" }
 
       - name: Unzip release zip
-        run: Expand-Archive -Path "${{ env.SERVICE_ROOT_PATH }}/releases/${{ env.TARGET_RELEASE_FOLDER }}" -DestinationPath "${{ env.SERVICE_ROOT_PATH }}" -Force
+        run: |
+          Expand-Archive -Path "${{ env.SERVICE_ROOT_PATH }}/releases/${{ env.TARGET_RELEASE_S3_OBJECT }}".replace("-latest", "") -DestinationPath "${{ env.SERVICE_ROOT_PATH }}" -Force
+          echo "UNZIPPED_RELEASE_FOLDER=${{ env.TARGET_RELEASE_S3_OBJECT }}.replace('-latest', '').replace('.zip', '')" >> "$env:GITHUB_ENV"
 
       - name: Overwrite new release build folder to existing build folder
-        run: Copy-Item -Path "${{ env.SERVICE_ROOT_PATH }}/${{ env.TARGET_RELEASE_FOLDER }}/${{ inputs.build-folder-name }}" -Destination "${{ env.SERVICE_ROOT_PATH }}/${{ inputs.build-folder-name }}" -Recurse -Force
+        run: Copy-Item -Path "${{ env.SERVICE_ROOT_PATH }}/${{ env.UNZIPPED_RELEASE_FOLDER }}/${{ inputs.build-folder-name }}" -Destination "${{ env.SERVICE_ROOT_PATH }}/${{ inputs.build-folder-name }}" -Recurse -Force
 
       - name: Delete extracted release folder
-        run: Remove-Item -Path "${{ env.SERVICE_ROOT_PATH }}/${{ env.TARGET_RELEASE_FOLDER }}" -Recurse -Force
+        run: Remove-Item -Path "${{ env.SERVICE_ROOT_PATH }}/${{ env.UNZIPPED_RELEASE_FOLDER }}" -Recurse -Force
 
       - name: Overwrite env file (if it exists)
         run: if (Test-Path "${{ env.SERVICE_ROOT_PATH }}/${{ inputs.env-file-name}}")
@@ -121,8 +124,8 @@ jobs:
       - name: Start Agent windows service
         run: if ((Get-Service "${{ inputs.windows-service-name }}").Status -eq "Stopped") { Start-Service -Name "${{ inputs.windows-service-name }}" }
 
-      - name: Clean up release folder (delete all files except the latest release)
-        run: Get-ChildItem -Path "${{ env.SERVICE_ROOT_PATH }}/releases" -Exclude ${{ env.TARGET_RELEASE_FOLDER }} | Remove-Item -Recurse -Force
+      - name: Clean up release folder (delete all files except last 5 release folders)
+        run: Get-ChildItem -Path "${{ env.SERVICE_ROOT_PATH }}/releases" | Sort-Object -Property CreationTime -Descending | Select-Object -Skip 5 | Remove-Item -Recurse -Force
 
     #   - name: Curl to MonitorHub to confirm version update succeeded or failed
     #     # ensure this step is executed even if the previous step fails.
