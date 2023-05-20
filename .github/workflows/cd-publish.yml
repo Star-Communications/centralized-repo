@@ -80,7 +80,7 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v2
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
-          role-session-name: TrackerAgentPublishDeploy
+          role-session-name: DeployPublish
           aws-region: eu-central-1
 
       - name: Get S3 object name of release "target-version"
