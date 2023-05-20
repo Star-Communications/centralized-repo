@@ -62,6 +62,7 @@ jobs:
         shell: pwsh
         run: |
           echo "runs-on: ${{ inputs.runs-on }}"
+          echo "role ARN: ${{ secrets.AWS_ROLE_TO_ASSUME }}"
           if ('${{ inputs.runs-on }}' -eq 'ubuntu-latest') {
             echo "This workflow is not intended to run on ubuntu-latest. Please use self-hosted runner label(s)."
             exit 1
