@@ -116,7 +116,7 @@ jobs:
           echo "UNZIPPED_RELEASE_FOLDER=$unzippedFolderName" >> "$env:GITHUB_ENV"
 
       - name: Overwrite new release build folder to existing build folder
-        run: Copy-Item -Path "${{ env.SERVICE_ROOT_PATH }}/${{ env.UNZIPPED_RELEASE_FOLDER }}/${{ inputs.build-folder-name }}" -Destination "${{ env.SERVICE_ROOT_PATH }}/${{ inputs.build-folder-name }}" -Recurse -Force
+        run: Copy-Item -Path "${{ env.SERVICE_ROOT_PATH }}/${{ env.UNZIPPED_RELEASE_FOLDER }}/${{ inputs.build-folder-name }}/*" -Destination "${{ env.SERVICE_ROOT_PATH }}/${{ inputs.build-folder-name }}" -Recurse -Force
 
       - name: Delete extracted release folder
         run: Remove-Item -Path "${{ env.SERVICE_ROOT_PATH }}/${{ env.UNZIPPED_RELEASE_FOLDER }}" -Recurse -Force
