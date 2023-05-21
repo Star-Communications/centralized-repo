@@ -46,8 +46,8 @@ jobs:
           if (-not [string]::IsNullOrEmpty("${{ inputs.additional-branch-names }}")) {
               $CONVENTIONAL_BRANCH_NAMES = "$CONVENTIONAL_BRANCH_NAMES,${{ inputs.additional-branch-names }}"
           }
-          # split by comma and remove spaces, then join with |
-          $regexBranchNameTemp = ($CONVENTIONAL_BRANCH_NAMES -replace ',', '|').Trim()
+          # replace ',' with '|' & remove leading & trailing spaces
+          $regexBranchNameTemp="$CONVENTIONAL_BRANCH_NAMES.replace(',', '|').Trim()"
           echo "Convention branch names (regex): $regexBranchNameTemp"
           echo "regexBranchNames=$regexBranchNameTemp" >> "$env:GITHUB_OUTPUT"
 
