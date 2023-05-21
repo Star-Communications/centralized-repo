@@ -1,4 +1,4 @@
-name: cd-publish
+name: cd-windows-service-publish
 
 on:
   workflow_call:
