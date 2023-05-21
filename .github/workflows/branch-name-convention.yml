@@ -47,7 +47,7 @@ jobs:
               $env:CONVENTIONAL_BRANCH_NAMES = "$env:CONVENTIONAL_BRANCH_NAMES,${{ inputs.additional-branch-names }}"
           }
           # replace ',' with '|' & remove leading & trailing spaces
-          $regexBranchNameTemp=$env:CONVENTIONAL_BRANCH_NAMES.replace(',', '|').Trim()
+          $regexBranchNameTemp=($env:CONVENTIONAL_BRANCH_NAMES).replace(',', '|').Trim()
           echo "Convention branch names (regex): $regexBranchNameTemp"
           echo "regexBranchNames=$regexBranchNameTemp" >> "$env:GITHUB_OUTPUT"
 
@@ -57,10 +57,10 @@ jobs:
           REGEX_BRANCH_NAMES: "${{ steps.setConventionBranchNames.outputs.regexBranchNames }}"
         run: |
           echo "Branch name is ${{ inputs.branch-name }}"
-          if ("${{ inputs.branch-name }}" -match "^($REGEX_BRANCH_NAMES)/.*") {
+          if ("${{ inputs.branch-name }}" -match "^($env:REGEX_BRANCH_NAMES)/.*") {
               echo "Branch name is following convention"
           } else {
               echo "Branch name is NOT following naming convention"
-              echo "Branch name should start with one of the following: $REGEX_BRANCH_NAMES"
+              echo "Branch name should start with one of the following: $env:REGEX_BRANCH_NAMES"
               exit 1
           }
