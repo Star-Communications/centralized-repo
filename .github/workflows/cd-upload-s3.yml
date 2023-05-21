@@ -76,7 +76,7 @@ jobs:
         run: |
           $latestObjectKeys = @(aws s3api list-objects-v2 --bucket "${{ inputs.s3-bucket-name }}" --prefix "${{ inputs.s3-prefix }}" --query 'Contents[?ends_with(Key, `-latest.zip`)].Key' --output text)
           echo "S3 Objects containing 'latest': $latestObjectKeys"
-          if (-not [string]::IsNullOrEmpty($latestObjectKeys)) {
+          if (-not [string]::IsNullOrEmpty($latestObjectKeys) -and $releaseObjects -ne "None") {
             $latestObjectKeys = $latestObjectKeys.Split()
             foreach ($object in $latestObjectKeys) {
               $newObjName = $object.Replace("${{ inputs.s3-prefix }}/","").Replace("-latest.zip",".zip")
