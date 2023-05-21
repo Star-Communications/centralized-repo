@@ -34,6 +34,7 @@ jobs:
 
     steps:
       # concatenate additional branch names to convention branch names defined below ('dependabot' & 'bump' are used by dependabot)
+      # TODO: add check to validate that additional branch names are not already part of convention branch names & are in correct format
       - name: Set convention branch names
         id: setConventionBranchNames
         shell: pwsh
@@ -46,20 +47,20 @@ jobs:
               $CONVENTIONAL_BRANCH_NAMES = "$CONVENTIONAL_BRANCH_NAMES,${{ inputs.additional-branch-names }}"
           }
           # split by comma and remove spaces, then join with |
-          $CONVENTIONAL_BRANCH_NAMES = ($CONVENTIONAL_BRANCH_NAMES -replace ',', '|').Trim()
-          echo "Convention branch names: $CONVENTIONAL_BRANCH_NAMES"
-          echo "conventionBranchNames=$CONVENTIONAL_BRANCH_NAMES" >> "$env:GITHUB_OUTPUT"
+          $regexBranchNameTemp = ($CONVENTIONAL_BRANCH_NAMES -replace ',', '|').Trim()
+          echo "Convention branch names (regex): $regexBranchNameTemp"
+          echo "regexBranchNames=$regexBranchNameTemp" >> "$env:GITHUB_OUTPUT"
 
       - name: Check branch name is following convention
         shell: pwsh
         env:
-          CONVENTIONAL_BRANCH_NAMES: "${{ steps.setConventionBranchNames.outputs.conventionBranchNames }}"
+          REGEX_BRANCH_NAMES: "${{ steps.setConventionBranchNames.outputs.regexBranchNames }}"
         run: |
           echo "Branch name is ${{ inputs.branch-name }}"
-          if ("${{ inputs.branch-name }}" -match "^($CONVENTIONAL_BRANCH_NAMES)/.*") {
+          if ("${{ inputs.branch-name }}" -match "^($REGEX_BRANCH_NAMES)/.*") {
               echo "Branch name is following convention"
           } else {
               echo "Branch name is NOT following naming convention"
-              echo "Branch name should start with one of the following: $CONVENTIONAL_BRANCH_NAMES"
+              echo "Branch name should start with one of the following: $REGEX_BRANCH_NAMES"
               exit 1
           }
