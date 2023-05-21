@@ -1,4 +1,5 @@
-name: cd-windows-service-publish
+# CD - Deploy Windows Service (publish)
+name: cd-deploy-publish-ws.yml
 
 on:
   workflow_call:
@@ -68,11 +69,11 @@ jobs:
           }
 
       # ********** Get executable path of windows service **********
-      - name: Set executable path of Agent windows service
+      - name: Set executable path of windows service
         run: |
-          $agentPath=$((Get-CimInstance -ClassName Win32_Service -Filter "Name='${{ inputs.windows-service-name }}'" | Select-Object -ExpandProperty PathName) | Split-Path -Parent | Split-Path -Parent)
-          echo "agentPath - $agentPath"
-          if ($agentPath) { echo "SERVICE_ROOT_PATH=$agentPath" >> $env:GITHUB_ENV }
+          $execPath=$((Get-CimInstance -ClassName Win32_Service -Filter "Name='${{ inputs.windows-service-name }}'" | Select-Object -ExpandProperty PathName) | Split-Path -Parent | Split-Path -Parent)
+          echo "execPath - $execPath"
+          if ($execPath) { echo "SERVICE_ROOT_PATH=$execPath" >> $env:GITHUB_ENV }
 
       # ********** Download release folder from S3 **********
       - name: Configure AWS credentials
@@ -100,11 +101,11 @@ jobs:
           { aws s3 cp "s3://${{ inputs.s3-release-bucket }}/${{ inputs.s3-prefix }}/${{ env.TARGET_RELEASE_S3_OBJECT }}" "${{ env.SERVICE_ROOT_PATH }}/releases/${{ env.TARGET_RELEASE_S3_OBJECT }}".replace("-latest", "") }
 
       # ********** Update windows serivce **********
-      #   - name: Curl backup endpoint (to AgentApi)
+      #   - name: Curl backup endpoint (to service Api)
       #     run: curl -X POST https://api.scout-camp.io/backup
 
       # Self-hosted runners requires elevated privileges to install and start services - cmd (as admin) run: "config "NAME_OF_YOUR_SERVICE" obj= "NT AUTHORITY\SYSTEM" type= own"
-      - name: Stop Agent windows service
+      - name: Stop windows service
         run: if ((Get-Service "${{ inputs.windows-service-name }}").Status -eq "Running") { Stop-Service -Name "${{ inputs.windows-service-name }}" }
 
       - name: Unzip release zip
@@ -123,7 +124,7 @@ jobs:
         run: if (Test-Path "${{ env.SERVICE_ROOT_PATH }}/${{ inputs.env-file-name}}")
           { Copy-Item -Path "${{ env.SERVICE_ROOT_PATH }}/${{ inputs.env-file-name}}" -Destination "${{ env.SERVICE_ROOT_PATH }}/${{ inputs.build-folder-name }}/${{ inputs.env-file-name}}" -Force }
 
-      - name: Start Agent windows service
+      - name: Start windows service
         run: if ((Get-Service "${{ inputs.windows-service-name }}").Status -eq "Stopped") { Start-Service -Name "${{ inputs.windows-service-name }}" }
 
       - name: Clean up release folder (delete all files except last 5 release folders)
