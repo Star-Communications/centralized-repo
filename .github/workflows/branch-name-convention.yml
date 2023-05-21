@@ -41,14 +41,13 @@ jobs:
         env:
           CONVENTIONAL_BRANCH_NAMES: "break,feat,fix,deps,docs,enhance,refactor,test,cicd,other,dependabot,bump"
         run: |
-          echo "Convention branch names: $env:CONVENTIONAL_BRANCH_NAMES"
           echo "Additional branch names: ${{ inputs.additional-branch-names }}"
           # if additional branch names are provided, concatenate them to "convention branch names"
           if (-not [string]::IsNullOrEmpty("${{ inputs.additional-branch-names }}")) {
               $env:CONVENTIONAL_BRANCH_NAMES = "$env:CONVENTIONAL_BRANCH_NAMES,${{ inputs.additional-branch-names }}"
           }
           # replace ',' with '|' & remove leading & trailing spaces
-          $regexBranchNameTemp="$env:CONVENTIONAL_BRANCH_NAMES.replace(',', '|').Trim()"
+          $regexBranchNameTemp=$env:CONVENTIONAL_BRANCH_NAMES.replace(',', '|').Trim()
           echo "Convention branch names (regex): $regexBranchNameTemp"
           echo "regexBranchNames=$regexBranchNameTemp" >> "$env:GITHUB_OUTPUT"
 
