@@ -36,25 +36,22 @@ jobs:
       # concatenate additional branch names to convention branch names defined below ('dependabot' & 'bump' are used by dependabot)
       - name: Set convention branch names
         id: setConventionBranchNames
+        shell: pwsh
         env:
-          OS: ${{ runner.os}}
           CONVENTIONAL_BRANCH_NAMES: "break,feat,fix,deps,docs,enhance,refactor,test,cicd,other,dependabot,bump"
         run: |
           echo "Additional branch names: ${{ inputs.additional-branch-names }}"
           # if additional branch names are provided, concatenate them to "convention branch names"
-          if (${{ inputs.additional-branch-names }}) {
+          if (-not [string]::IsNullOrEmpty("${{ inputs.additional-branch-names }}")) {
               $CONVENTIONAL_BRANCH_NAMES = "$CONVENTIONAL_BRANCH_NAMES,${{ inputs.additional-branch-names }}"
           }
           # split by comma and remove spaces, then join with |
           $CONVENTIONAL_BRANCH_NAMES = ($CONVENTIONAL_BRANCH_NAMES -replace ',', '|').Trim()
           echo "Convention branch names: $CONVENTIONAL_BRANCH_NAMES"
-          if ("$OS" -eq "Windows") {
-              echo "conventionBranchNames=$CONVENTIONAL_BRANCH_NAMES" >> "$env:GITHUB_OUTPUT"
-          } else {
-              echo "conventionBranchNames=$CONVENTIONAL_BRANCH_NAMES" >> "$GITHUB_OUTPUT"
-          }
+          echo "conventionBranchNames=$CONVENTIONAL_BRANCH_NAMES" >> "$env:GITHUB_OUTPUT"
 
       - name: Check branch name is following convention
+        shell: pwsh
         env:
           CONVENTIONAL_BRANCH_NAMES: "${{ steps.setConventionBranchNames.outputs.conventionBranchNames }}"
         run: |
