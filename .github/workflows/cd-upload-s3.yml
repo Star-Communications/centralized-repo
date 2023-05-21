@@ -67,7 +67,7 @@ jobs:
           echo "Release folder: ${{ inputs.release-artifact-name }}"
           $releaseObjects = @(aws s3api list-objects-v2 --bucket "${{ inputs.s3-bucket-name }}" --prefix "${{ inputs.s3-prefix }}" --query "Contents[?contains(Key, '${{ inputs.release-artifact-name }}.zip') || contains(Key, '${{ inputs.release-artifact-name }}-latest.zip')].Key" --output text)
           echo "S3 Objects with same release folder name: $releaseObjects"
-          if ($releaseObjects) {
+          if ($releaseObjects -or $releaseObjects -ne "None") {
             throw "Release folder already exists in S3."
           }
 
