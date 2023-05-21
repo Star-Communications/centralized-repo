@@ -41,6 +41,7 @@ jobs:
         env:
           CONVENTIONAL_BRANCH_NAMES: "break,feat,fix,deps,docs,enhance,refactor,test,cicd,other,dependabot,bump"
         run: |
+          echo "Convention branch names: $env:CONVENTIONAL_BRANCH_NAMES"
           echo "Additional branch names: ${{ inputs.additional-branch-names }}"
           # if additional branch names are provided, concatenate them to "convention branch names"
           if (-not [string]::IsNullOrEmpty("${{ inputs.additional-branch-names }}")) {
