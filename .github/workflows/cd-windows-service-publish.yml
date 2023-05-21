@@ -8,6 +8,7 @@ on:
         required: true
 
     inputs:
+      # TODO: check if runner label(s) exist in the org/repo
       runs-on:
         description: "The type of runner(s) to use (comma separated)"
         type: string
@@ -50,7 +51,7 @@ env:
   UNZIPPED_RELEASE_FOLDER: ""
 
 permissions:
-    id-token: write # This is required for OIDC requesting the JWT
+  id-token: write # This is required for OIDC requesting the JWT
 
 jobs:
   deploy-publish:

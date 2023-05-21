@@ -30,9 +30,13 @@ on:
 
 jobs:
   branch-name-convention:
-    runs-on: ${{ inputs.runs-on }}
+    runs-on: ${{ inputs.runs-on || 'ubuntu-latest' }}
 
     steps:
+      - name: Log runner label(s)
+        run: |
+          echo "runs-on: ${{ inputs.runs-on || 'ubuntu-latest' }}"
+
       # concatenate additional branch names to convention branch names defined below ('dependabot' & 'bump' are used by dependabot)
       # TODO: add check to validate that additional branch names are not already part of convention branch names & are in correct format
       - name: Set convention branch names
