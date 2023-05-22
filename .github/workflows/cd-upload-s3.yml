@@ -8,7 +8,7 @@ on:
         required: true
 
     inputs:
-      # TODO: check if runner label(s) exist in the org/repo 
+      # TODO: check if runner label(s) exist in the org/repo
       runs-on:
         description: "Type of runner(s) to use (comma separated)"
         type: string
@@ -65,24 +65,30 @@ jobs:
       - name: Check if release version is already in S3
         shell: pwsh
         run: |
+          # STEP 1: Get S3 objects with same release folder name
           echo "Release folder: ${{ inputs.release-artifact-name }}"
-          $releaseObjects = @(aws s3api list-objects-v2 --bucket "${{ inputs.s3-bucket-name }}" --prefix "${{ inputs.s3-prefix }}" --query "Contents[?contains(Key, '${{ inputs.release-artifact-name }}.zip') || contains(Key, '${{ inputs.release-artifact-name }}-latest.zip')].Key" --output text)
+          $releaseObjects = (aws s3api list-objects-v2 --bucket "${{ inputs.s3-bucket-name }}" --prefix "${{ inputs.s3-prefix }}" --query "Contents[?contains(Key, '${{ inputs.release-artifact-name }}.zip') || contains(Key, '${{ inputs.release-artifact-name }}-latest.zip')].Key" --output text)
           echo "S3 Objects with same release folder name: $releaseObjects"
-          if ($releaseObjects -ne "None" -and $releaseObjects) {
+          # STEP 2: If any objects were found, throw error
+          if ($releaseObjects) {
             throw "Release folder already exists in S3."
           }
 
       - name: Remove '-latest' suffix from any S3 object name
         shell: pwsh
         run: |
-          $latestObjectKeys = @(aws s3api list-objects-v2 --bucket "${{ inputs.s3-bucket-name }}" --prefix "${{ inputs.s3-prefix }}" --query 'Contents[?ends_with(Key, `-latest.zip`)].Key' --output text)
+          # STEP 1: Get S3 objects with '-latest' suffix   
+          $latestObjectKeys = (aws s3api list-objects-v2 --bucket "${{ inputs.s3-bucket-name }}" --prefix "${{ inputs.s3-prefix }}" --query 'Contents[?ends_with(Key, `-latest.zip`)].Key' --output text)
+          # STEP 2: Check if any objects were found
           echo "S3 Objects containing 'latest': $latestObjectKeys"
-          if (-not [string]::IsNullOrEmpty($latestObjectKeys) -and $latestObjectKeys -ne "None") {
-            $latestObjectKeys = $latestObjectKeys.Split()
-            foreach ($object in $latestObjectKeys) {
+          if ($latestObjectKeys) {
+            # STEP 3: Convert object keys (string) to array
+            $latestObjectArray = $latestObjectKeys.Split()
+            foreach ($object in $latestObjectArray) {
               $newObjName = $object.Replace("${{ inputs.s3-prefix }}/","").Replace("-latest.zip",".zip")
               echo "Old object name: $object"
               echo "New object name: $newObjName"
+              # STEP 4: Rename object (remove '-latest' suffix)
               aws s3 mv "s3://${{ inputs.s3-bucket-name }}/$object" "s3://${{ inputs.s3-bucket-name }}/${{ inputs.s3-prefix }}/$newObjName"
             }
           } else {
