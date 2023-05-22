@@ -98,7 +98,7 @@ jobs:
           $targetReleaseObj = (aws s3api list-objects-v2 --bucket "${{ inputs.s3-release-bucket }}" --prefix "${{ inputs.s3-prefix }}" --query "reverse(sort_by(Contents[?contains(Key, '${{ inputs.target-version}}.zip')], &LastModified))[0].Key" --output text).replace("${{ inputs.s3-prefix }}/", "")
           echo "Target release object in S3: $targetReleaseObj"
           # STEP 2: throw an error if $targetReleaseObj has no value
-          if ($targetReleaseObj) {
+          if (!$targetReleaseObj) {
             throw "Target release version not found in S3. Invalid S3 object name."
           }
           echo "TARGET_RELEASE_S3_OBJECT=$targetReleaseObj" >> $env:GITHUB_ENV
