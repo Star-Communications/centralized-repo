@@ -122,8 +122,7 @@ jobs:
         # @() in an array operator - is used to force the output into an array
         run: |
           # STEP 1: Create downloads folder if it doesn't exist (to avoid error in 'Get-ChildItem')
-          if(!(Test-Path "${{ steps.set-downloads-path.outputs.downloads-folder-path }}"))
-          {
+          if(!(Test-Path "${{ steps.set-downloads-path.outputs.downloads-folder-path }}")) {
             New-Item -ItemType Directory -Force -Path "${{ steps.set-downloads-path.outputs.downloads-folder-path }}"
           }
 
@@ -141,9 +140,11 @@ jobs:
           $filtered = $dirs + $files | Where-Object { $_.Name -eq "$objName" -or $_.Name -eq "$objName.zip" }
 
           # STEP 2: Download the object if it doesn't exist locally
-          if(!($filtered))
-          {
+          if(!($filtered)) {
             aws s3 cp "s3://${{ inputs.s3-bucket }}/${{ inputs.s3-prefix }}/${{ steps.get-s3-object-name.outputs.obj-name }}" "${{ steps.set-downloads-path.outputs.downloads-folder-path }}/${{ steps.get-s3-object-name.outputs.obj-name }}" 
+          }
+          else {
+            echo "Object '$objName' already exists locally. Skipping download."
           }
 
       - name: Unzip downloaded object file
