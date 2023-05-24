@@ -31,11 +31,11 @@ on:
         required: false
         default: ""
 
-      unzip-folder:
-        description: "Unzip folder after download"
+      unzip-file:
+        description: "Unzip downloaded S3 object file"
         type: boolean
         required: false
-        default: true
+        default: false
 
 env:
   DOWNLOADS_FOLDER_PATH: ""
@@ -128,7 +128,7 @@ jobs:
           }
 
       - name: Unzip downloaded object file
-        if: ${{ inputs.unzip-folder }}
+        if: ${{ inputs.unzip-file }}
         run: |
           # STEP 1: Check if downloaded object exists and is a zip file
           $objPath = "${{ env.DOWNLOADS_FOLDER_PATH }}/${{ steps.get-s3-object-name.outputs.obj-name }}"
