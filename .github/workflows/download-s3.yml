@@ -37,9 +37,13 @@ on:
         required: false
         default: false
 
-env:
-  DOWNLOADS_FOLDER_PATH: ""
-  DOWNLOADED_NAME: ""
+    outputs:
+      downloads-folder-path:
+        description: "The path to the downloads folder"
+        value: ${{ jobs.download-from-s3.outputs.output1 }}
+      downloaded-name:
+        description: "The name of the downloaded file or folder (if unzipped)"
+        value: ${{ jobs.download-from-s3.outputs.output2 }}
 
 permissions:
   id-token: write # This is required for OIDC requesting the JWT
@@ -47,6 +51,10 @@ permissions:
 jobs:
   download-from-s3:
     runs-on: ${{ inputs.runs-on }}
+
+    outputs:
+      output1: ${{ steps.set-downloads-path.outputs.downloads-folder-path }}
+      output2: ${{ steps.unzip-file-id.outputs.downloaded-name }}
 
     steps:
       # This job is not intended to run on ubuntu-latest. It downloads the s3 object on the runner's local machine for another job to use. When ununtu-latest the machine gets destroyed after the job is done.
@@ -60,6 +68,7 @@ jobs:
           }
 
       - name: Set DOWNLOADS_FOLDER_PATH env variable
+        id: set-downloads-path
         shell: pwsh
         run: |
           # STEP 1: Set downloadsFolderPath based on whether inputs.s3-prefix is '' or not
@@ -72,10 +81,10 @@ jobs:
 
           # STEP 2: set $downloadsFolderPath as an env variable (check OS to use appropriate syntax)
           if (${{ runner.os }} -eq 'Linux') {
-              echo "DOWNLOADS_FOLDER_PATH=$downloadsFolderPath" >> $GITHUB_ENV
+            echo "downloads-folder-path=$downloadsFolderPath" >> $GITHUB_OUTPUT
           }
           else {
-              echo "DOWNLOADS_FOLDER_PATH=$downloadsFolderPath" >> $env:GITHUB_ENV
+            echo "downloads-folder-path=$downloadsFolderPath" >> $env:GITHUB_OUTPUT
           }
 
       # ********** Download object from S3 **********
@@ -112,10 +121,10 @@ jobs:
           # STEP 1: Check if downloaded object exists locally (as a directory or file)
 
           # STEP 1.a: Get all directories in the downloads folder (as array)
-          $dirs = @(Get-ChildItem -Path "${{ env.DOWNLOADS_FOLDER_PATH }}/" -Directory)
+          $dirs = @(Get-ChildItem -Path "${{ steps.set-downloads-path.outputs.downloads-folder-path }}/" -Directory)
 
           # STEP 1.b: Get all files (to get zipped files) in the downloads folder (as array)
-          $files = @(Get-ChildItem -Path "${{ env.DOWNLOADS_FOLDER_PATH }}/" -File)
+          $files = @(Get-ChildItem -Path "${{ steps.set-downloads-path.outputs.downloads-folder-path }}/" -File)
 
           # STEP 1.c: Concatenate the arrays & filter result by object name 
           # filtering with or without .zip ext, in case the object got unzipped after download.
@@ -124,14 +133,15 @@ jobs:
           # STEP 2: Download the object if it doesn't exist locally
           if(!($filtered))
           {
-            aws s3 cp "s3://${{ inputs.s3-bucket }}/${{ inputs.s3-prefix }}/${{ steps.get-s3-object-name.outputs.obj-name }}" "${{ env.DOWNLOADS_FOLDER_PATH }}/${{ steps.get-s3-object-name.outputs.obj-name }}" 
+            aws s3 cp "s3://${{ inputs.s3-bucket }}/${{ inputs.s3-prefix }}/${{ steps.get-s3-object-name.outputs.obj-name }}" "${{ steps.set-downloads-path.outputs.downloads-folder-path }}/${{ steps.get-s3-object-name.outputs.obj-name }}" 
           }
 
       - name: Unzip downloaded object file
         if: ${{ inputs.unzip-file }}
+        id: unzip-file-id
         run: |
           # STEP 1: Check if downloaded object exists and is a zip file
-          $objPath = "${{ env.DOWNLOADS_FOLDER_PATH }}/${{ steps.get-s3-object-name.outputs.obj-name }}"
+          $objPath = "${{ steps.set-downloads-path.outputs.downloads-folder-path }}/${{ steps.get-s3-object-name.outputs.obj-name }}"
           $objName = "${{ steps.get-s3-object-name.outputs.obj-name }}"
           if((Test-Path "$objPath") -and (Get-Item "$objPath").Extension -eq ".zip")
           {
@@ -144,13 +154,8 @@ jobs:
           }
           # STEP 5: Set $objName as an env variable (check os to use appropriate syntax)
           if (${{ runner.os }} -eq 'Linux') {
-            echo "DOWNLOADED_NAME=$objName" >> $GITHUB_OUTPUT
+            echo "downloaded-name=$objName" >> $GITHUB_OUTPUT
           }
           else {
-            echo "DOWNLOADED_NAME=$objName" >> $env:GITHUB_OUTPUT
+            echo "downloaded-name=$objName" >> $env:GITHUB_OUTPUT
           }
-
-    # Set job output to be used in next job
-    outputs:
-      downloads-folder-path: ${{ env.DOWNLOADS_FOLDER_PATH }}
-      downloaded-name: ${{ env.DOWNLOADED_NAME }} # name of the downloaded file or folder (if unzipped).
