@@ -136,7 +136,7 @@ jobs:
           $files = @(Get-ChildItem -Path "${{ steps.set-downloads-path.outputs.downloads-folder-path }}/" -File)
 
           # STEP 2.c: Concatenate the arrays & filter result by object name
-          $objName = (${{ steps.get-s3-object-name.outputs.obj-name }}).replace('.zip', '')
+          $objName = "${{ steps.get-s3-object-name.outputs.obj-name }}".replace('.zip', '')
           # filtering with or without .zip ext, in case the object got unzipped after download.
           $filtered = $dirs + $files | Where-Object { $_.Name -eq '$objName' -or $_.Name -eq '$objName.zip' }
 
@@ -159,7 +159,7 @@ jobs:
             # STEP 3: Remove the zip file
             Remove-Item "$objPath"
             # STEP 4: Remove ".zip" from the object name
-            $objName = $objName.replace(".zip", "")
+            $objName = "$objName".replace(".zip", "")
           }
           # STEP 5: Set $objName as an env variable (check os to use appropriate syntax)
           if ("${{ runner.os }}" -eq 'Linux') {
