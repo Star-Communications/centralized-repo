@@ -136,7 +136,7 @@ jobs:
           $files = @(Get-ChildItem -Path "${{ steps.set-downloads-path.outputs.downloads-folder-path }}/" -File)
 
           # STEP 2.c: Concatenate the arrays & filter result by object name
-          $objName = '${{ steps.get-s3-object-name.outputs.obj-name }}'.replace('.zip', '')
+          $objName = (${{ steps.get-s3-object-name.outputs.obj-name }}).replace('.zip', '')
           # filtering with or without .zip ext, in case the object got unzipped after download.
           $filtered = $dirs + $files | Where-Object { $_.Name -eq '$objName' -or $_.Name -eq '$objName.zip' }
 
@@ -154,8 +154,8 @@ jobs:
           $objName = "${{ steps.get-s3-object-name.outputs.obj-name }}"
           if(("${{ inputs.unzip-file }}" -eq "true") -and (Test-Path "$objPath") -and (Get-Item "$objPath").Extension -eq ".zip")
           {
-            # STEP 2: Unzip the object
-            Expand-Archive -Path "$objPath" -DestinationPath "$objPath".replace(".zip", "")
+            # STEP 2: Unzip the object (use -Force to overwrite existing files)
+            Expand-Archive -Path "$objPath" -DestinationPath "$objPath".replace(".zip", "") -Force
             # STEP 3: Remove the zip file
             Remove-Item "$objPath"
             # STEP 4: Remove ".zip" from the object name
