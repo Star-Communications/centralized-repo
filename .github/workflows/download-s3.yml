@@ -118,15 +118,21 @@ jobs:
         shell: pwsh
         # @() in an array operator - is used to force the output into an array
         run: |
-          # STEP 1: Check if downloaded object exists locally (as a directory or file)
+          # STEP 1: Create downloads folder if it doesn't exist (to avoid error in 'Get-ChildItem')
+          if(!Test-Path "${{ steps.set-downloads-path.outputs.downloads-folder-path }}")
+          {
+            New-Item -ItemType Directory -Force -Path "${{ steps.set-downloads-path.outputs.downloads-folder-path }}"
+          }
 
-          # STEP 1.a: Get all directories in the downloads folder (as array)
+          # STEP 2: Check if downloaded object exists locally (as a directory or file)
+
+          # STEP 2.a: Get all directories in the downloads folder (as array)
           $dirs = @(Get-ChildItem -Path "${{ steps.set-downloads-path.outputs.downloads-folder-path }}/" -Directory)
 
-          # STEP 1.b: Get all files (to get zipped files) in the downloads folder (as array)
+          # STEP 2.b: Get all files (to get zipped files) in the downloads folder (as array)
           $files = @(Get-ChildItem -Path "${{ steps.set-downloads-path.outputs.downloads-folder-path }}/" -File)
 
-          # STEP 1.c: Concatenate the arrays & filter result by object name 
+          # STEP 2.c: Concatenate the arrays & filter result by object name 
           # filtering with or without .zip ext, in case the object got unzipped after download.
           $filtered = $dirs + $files | Where-Object { $_.Name -eq '${{ steps.get-s3-object-name.outputs.obj-name }}' -or $_.Name -eq '${{ steps.get-s3-object-name.outputs.obj-name }}.zip' }
 
