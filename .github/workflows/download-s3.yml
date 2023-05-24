@@ -159,10 +159,12 @@ jobs:
             Expand-Archive -Path "$objPath" -DestinationPath "$objPath".replace(".zip", "") -Force
             # STEP 3: Remove the zip file
             Remove-Item "$objPath"
-            # STEP 4: Remove ".zip" from the object name
-            $objName = "$objName".replace(".zip", "")
           }
-          # STEP 5: Set $objName as an env variable (check os to use appropriate syntax)
+
+          # STEP 5: Remove ".zip" from the object name
+          if ("${{ inputs.unzip-file }}" -eq "true") { $objName = "$objName".replace(".zip", "") }
+
+          # STEP 6: Set $objName as an env variable (check os to use appropriate syntax)
           if ("${{ runner.os }}" -eq 'Linux') {
             echo "downloaded-name=$objName" >> $GITHUB_OUTPUT
           }
