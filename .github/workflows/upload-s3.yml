@@ -1,4 +1,5 @@
-name: cd-upload-s3
+# Upload object to S3
+name: upload-s3
 
 on:
   workflow_call:
@@ -15,8 +16,8 @@ on:
         required: false
         default: "ubuntu-latest"
 
-      release-artifact-name:
-        description: "Name of the artifact (release files) to download"
+      artifact-name:
+        description: "Name of the file to download from artifact & upload to S3)"
         type: string
         required: true
 
@@ -30,12 +31,21 @@ on:
         type: string
         required: true
 
+      s3-suffix:
+        description: "Suffix to remove from S3 object name (e.g. '-latest')"
+        type: string
+        required: false
+        default: ""
+
+env:
+  DOWNLOADS_FOLDER_PATH: "./downloads/artifacts"
+
 permissions:
   id-token: write # This is required for OIDC requesting the JWT
   contents: read # This is required for actions/checkout
 
 jobs:
-  upload-release:
+  upload-to-s3:
     runs-on: ${{ inputs.runs-on || 'ubuntu-latest' }}
 
     steps:
@@ -43,12 +53,12 @@ jobs:
         run: |
           echo "runs-on: ${{ inputs.runs-on || 'ubuntu-latest' }}"
 
-      # ********** Download release file from artifact **********
-      - name: Download release artifact
+      # ********** Download artifact **********
+      - name: Download artifact file
         uses: actions/download-artifact@v3
         with:
-          name: ${{ inputs.release-artifact-name }}
-          path: ./download
+          name: ${{ inputs.artifact-name }}
+          path: ${{ env.DOWNLOADS_FOLDER_PATH }}
 
       # ********** Upload to S3 **********
       - name: Configure AWS credentials
@@ -62,38 +72,42 @@ jobs:
       # (NOTE: Windows runners can't access bash shell - "Access is denied.")
 
       # NOT NEEDED?? As release-drafter step above creates a new version even if no new changes are found.
-      - name: Check if release version is already in S3
+      - name: Check if file already exists in S3
         shell: pwsh
         run: |
-          # STEP 1: Get S3 objects with same release folder name
-          echo "Release folder: ${{ inputs.release-artifact-name }}"
-          $releaseObjects = (aws s3api list-objects-v2 --bucket "${{ inputs.s3-bucket-name }}" --prefix "${{ inputs.s3-prefix }}" --query "Contents[?contains(Key, '${{ inputs.release-artifact-name }}.zip') || contains(Key, '${{ inputs.release-artifact-name }}-latest.zip')].Key" --output text)
-          echo "S3 Objects with same release folder name: $releaseObjects"
+          # STEP 1: Get S3 objects with same artifact-name (search with '${{ inputs.s3-suffix }}' suffix for releases)
+          echo "Artifact Name: ${{ inputs.artifact-name }}"
+          $existingObjs = (aws s3api list-objects-v2 --bucket "${{ inputs.s3-bucket-name }}" --prefix "${{ inputs.s3-prefix }}" --query "Contents[?Key == '${{ inputs.artifact-name }}.zip' || Key == '${{ inputs.artifact-name }}${{ inputs.s3-suffix }}.zip'].Key" --output text)
+          echo "S3 Objects with same release folder name: $existingObjs"
+
           # STEP 2: If any objects were found, throw error
-          if ($releaseObjects) {
+          if ($existingObjs) {
             throw "Release folder already exists in S3."
           }
 
-      - name: Remove '-latest' suffix from any S3 object name
+      - name: Remove suffix from any S3 object name # this is also for releases
         shell: pwsh
         run: |
-          # STEP 1: Get S3 objects with '-latest' suffix   
-          $latestObjectKeys = (aws s3api list-objects-v2 --bucket "${{ inputs.s3-bucket-name }}" --prefix "${{ inputs.s3-prefix }}" --query 'Contents[?ends_with(Key, `-latest.zip`)].Key' --output text)
+          # STEP 1: Get S3 objects with suffix   
+          $latestObjectKeys = (aws s3api list-objects-v2 --bucket "${{ inputs.s3-bucket-name }}" --prefix "${{ inputs.s3-prefix }}" --query 'Contents[?ends_with(Key, `${{ inputs.s3-suffix }}.zip`)].Key' --output text)
+
           # STEP 2: Check if any objects were found
           echo "S3 Objects containing 'latest': $latestObjectKeys"
+
           if ($latestObjectKeys) {
             # STEP 3: Convert object keys (string) to array
             $latestObjectArray = $latestObjectKeys.Split()
             foreach ($object in $latestObjectArray) {
-              $newObjName = $object.Replace("${{ inputs.s3-prefix }}/","").Replace("-latest.zip",".zip")
+              $newObjName = $object.Replace("${{ inputs.s3-prefix }}/","").Replace("${{ inputs.s3-suffix }}.zip",".zip")
               echo "Old object name: $object"
               echo "New object name: $newObjName"
-              # STEP 4: Rename object (remove '-latest' suffix)
+              
+              # STEP 4: Rename object (remove suffix)
               aws s3 mv "s3://${{ inputs.s3-bucket-name }}/$object" "s3://${{ inputs.s3-bucket-name }}/${{ inputs.s3-prefix }}/$newObjName"
             }
           } else {
-            echo "No objects containing '-latest' found in S3 bucket."
+            echo "No objects containing suffix found in S3 bucket."
           }
 
-      - name: Upload new release folder (zipped) to S3 (add '-latest' suffix)
-        run: aws s3 cp "./download/${{ inputs.release-artifact-name }}.zip" "s3://${{ inputs.s3-bucket-name }}/${{ inputs.s3-prefix }}/${{ inputs.release-artifact-name }}-latest.zip"
+      - name: Upload new release folder (zipped) to S3 (add suffix)
+        run: aws s3 cp "./download/${{ inputs.artifact-name }}.zip" "s3://${{ inputs.s3-bucket-name }}/${{ inputs.s3-prefix }}/${{ inputs.artifact-name }}${{ inputs.s3-suffix }}.zip"
