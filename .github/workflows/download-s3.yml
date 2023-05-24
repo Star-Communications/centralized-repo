@@ -67,7 +67,7 @@ jobs:
             exit 1
           }
 
-      - name: Set DOWNLOADS_FOLDER_PATH env variable
+      - name: Set 'downloads-folder-path' output variable
         id: set-downloads-path
         shell: pwsh
         run: |
@@ -79,8 +79,8 @@ jobs:
             $downloadsFolderPath = "./downloads/${{ inputs.s3-prefix }}"
           }
 
-          # STEP 2: set $downloadsFolderPath as an env variable (check OS to use appropriate syntax)
-          if (${{ runner.os }} -eq 'Linux') {
+          # STEP 2: set $downloadsFolderPath as an output variable (check OS to use appropriate syntax)
+          if ("${{ runner.os }}" -eq 'Linux') {
             echo "downloads-folder-path=$downloadsFolderPath" >> $GITHUB_OUTPUT
           }
           else {
@@ -107,7 +107,7 @@ jobs:
             throw "Object not found in S3. Invalid s3-obj-filter."
           }
           # STEP 3: set $ObjName as an env variable (check os to use appropriate syntax)
-          if (${{ runner.os }} -eq 'Linux') {
+          if ("${{ runner.os }}" -eq 'Linux') {
               echo "obj-name=$ObjName" >> $GITHUB_OUTPUT
           }
           else {
@@ -153,7 +153,7 @@ jobs:
             $objName = $objName.replace(".zip", "")
           }
           # STEP 5: Set $objName as an env variable (check os to use appropriate syntax)
-          if (${{ runner.os }} -eq 'Linux') {
+          if ("${{ runner.os }}" -eq 'Linux') {
             echo "downloaded-name=$objName" >> $GITHUB_OUTPUT
           }
           else {
