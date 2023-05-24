@@ -119,7 +119,7 @@ jobs:
         # @() in an array operator - is used to force the output into an array
         run: |
           # STEP 1: Create downloads folder if it doesn't exist (to avoid error in 'Get-ChildItem')
-          if(!Test-Path "${{ steps.set-downloads-path.outputs.downloads-folder-path }}")
+          if(!(Test-Path "${{ steps.set-downloads-path.outputs.downloads-folder-path }}"))
           {
             New-Item -ItemType Directory -Force -Path "${{ steps.set-downloads-path.outputs.downloads-folder-path }}"
           }
