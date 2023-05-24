@@ -73,7 +73,7 @@ jobs:
         run: |
           # STEP 1: Get current directory path
           $currentDir = (Get-Location).Path
-          
+
           # STEP 2: Set downloadsFolderPath based on whether inputs.s3-prefix is '' or not
           if ('${{ inputs.s3-prefix }}' -eq '') {
             $downloadsFolderPath = "$currentDir/downloads"
@@ -151,7 +151,7 @@ jobs:
           # STEP 1: Check if downloaded object exists and is a zip file
           $objPath = "${{ steps.set-downloads-path.outputs.downloads-folder-path }}/${{ steps.get-s3-object-name.outputs.obj-name }}"
           $objName = "${{ steps.get-s3-object-name.outputs.obj-name }}"
-          if(${{ inputs.unzip-file }} -and (Test-Path "$objPath") -and (Get-Item "$objPath").Extension -eq ".zip")
+          if(("${{ inputs.unzip-file }}" -eq "true") -and (Test-Path "$objPath") -and (Get-Item "$objPath").Extension -eq ".zip")
           {
             # STEP 2: Unzip the object
             Expand-Archive -Path "$objPath" -DestinationPath "$objPath".replace(".zip", "")
