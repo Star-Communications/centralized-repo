@@ -62,7 +62,7 @@ jobs:
         shell: pwsh
         run: |
           echo "runs-on: ${{ inputs.runs-on }}"
-          if ('${{ inputs.runs-on }}' -eq 'ubuntu-latest') {
+          if ("${{ inputs.runs-on }}" -eq 'ubuntu-latest') {
             echo "This workflow is not intended to run on ubuntu-latest. Please use self-hosted runner label(s)."
             exit 1
           }
@@ -75,7 +75,7 @@ jobs:
           $currentDir = (Get-Location).Path
 
           # STEP 2: Set downloadsFolderPath based on whether inputs.s3-prefix is '' or not
-          if ('${{ inputs.s3-prefix }}' -eq '') {
+          if ("${{ inputs.s3-prefix }}" -eq '') {
             $downloadsFolderPath = "$currentDir/downloads"
           }
           else {
@@ -138,7 +138,7 @@ jobs:
           # STEP 2.c: Concatenate the arrays & filter result by object name
           $objName = "${{ steps.get-s3-object-name.outputs.obj-name }}".replace('.zip', '')
           # filtering with or without .zip ext, in case the object got unzipped after download.
-          $filtered = $dirs + $files | Where-Object { $_.Name -eq '$objName' -or $_.Name -eq '$objName.zip' }
+          $filtered = $dirs + $files | Where-Object { $_.Name -eq "$objName" -or $_.Name -eq "$objName.zip" }
 
           # STEP 2: Download the object if it doesn't exist locally
           if(!($filtered))

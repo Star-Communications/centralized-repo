@@ -75,7 +75,7 @@ jobs:
       - name: Check if file already exists in S3
         shell: pwsh
         run: |
-          # STEP 1: Get S3 objects with same artifact-name (search with '${{ inputs.s3-suffix }}' suffix for releases)
+          # STEP 1: Get S3 objects with same artifact-name (search with "${{ inputs.s3-suffix }}" suffix for releases)
           echo "Artifact Name: ${{ inputs.artifact-name }}"
           $existingObjs = (aws s3api list-objects-v2 --bucket "${{ inputs.s3-bucket-name }}" --prefix "${{ inputs.s3-prefix }}" --query "Contents[?Key == '${{ inputs.artifact-name }}.zip' || Key == '${{ inputs.artifact-name }}${{ inputs.s3-suffix }}.zip'].Key" --output text)
           echo "S3 Objects with same release folder name: $existingObjs"
