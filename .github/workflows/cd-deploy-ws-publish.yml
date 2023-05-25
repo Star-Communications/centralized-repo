@@ -10,7 +10,7 @@ on:
         type: string
         required: true
 
-      root-folder-name:
+      root-folder-path:
         description: "Name of the root folder containing all software files (eg. releases, exec, logs...)"
         type: string
         # not required cause we can get it by getting the executable path of the windows service
@@ -51,7 +51,7 @@ on:
         required: true
 
 env:
-  ROOT_FOLDER_PATH: "${{ inputs.root-folder-name }}"
+  ROOT_FOLDER_PATH: "${{ inputs.root-folder-path }}"
 
 jobs:
   deploy-ws-publish:
