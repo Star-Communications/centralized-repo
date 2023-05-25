@@ -128,12 +128,9 @@ jobs:
 
           # STEP 2: Check if downloaded object exists locally (as a directory or file)
 
-          # STEP 2.a: Get all directories in the downloads folder (as array) (if unzip-file is false, cause caller will want to get the zipped file, so no need to check for directories (unzipped files)))
-          if("${{ inputs.unzip-file }}" -eq "false") {
+          # STEP 2.a: Get all directories in the downloads folder (as array) (only if caller wants to unzip the file, otherwise we will need to get the zipped file)
+          if("${{ inputs.unzip-file }}" -eq "true") {
             $dirs = @(Get-ChildItem -Path "${{ steps.set-downloads-path.outputs.downloads-folder-path }}/" -Directory)
-          }
-          else {
-            $dirs = @()
           }
 
           # STEP 2.b: Get all files (to get zipped files) in the downloads folder (as array)
