@@ -3,11 +3,6 @@ name: cd-deploy-ws-publish
 
 on:
   workflow_call:
-    secrets:
-      AWS_ROLE_TO_ASSUME:
-        description: "ARN of the AWS role to assume"
-        required: true
-
     inputs:
       # TODO: check if runner label(s) exist in the org/repo
       runs-on:
@@ -15,18 +10,15 @@ on:
         type: string
         required: true
 
-      target-version:
-        description: "Version to deploy"
+      root-folder-name:
+        description: "Name of the root folder containing all software files (eg. releases, exec, logs...)"
         type: string
-        required: true
+        # not required cause we can get it by getting the executable path of the windows service
+        required: false
+        default: ""
 
-      s3-release-bucket:
-        description: "Name of the S3 bucket to download the release from"
-        type: string
-        required: true
-
-      s3-prefix:
-        description: "Name of the S3 bucket prefix (subfolder) to upload to"
+      project-name:
+        description: "Name of the project (eg. 'project_name')"
         type: string
         required: true
 
@@ -35,11 +27,18 @@ on:
         type: string
         required: true
 
-      root-folder-name:
-        description: "Name of the root folder containing all software files (eg. releases, exec, logs...)"
+      # if path to downloaded release in "C:\actions-runner\_work\MyProj\MyProj\downloads\my-proj\my-proj-v0.1.29-latest",
+      # then "downloaded-release-path" = "C:\actions-runner\_work\MyProj\MyProj\downloads\my-proj"
+      # and "downloaded-release-folder" = "my-proj-v0.1.29-latest"
+      downloaded-release-path:
+        description: "Path in local machine of the downloaded release folder."
         type: string
-        required: false
-        default: ""
+        required: true
+
+      downloaded-release-folder:
+        description: "Name of the downloaded release folder."
+        type: string
+        required: true
 
       build-folder-name:
         description: "Name of the folder containing the build files (eg. 'publish' or 'dist')"
@@ -53,11 +52,6 @@ on:
 
 env:
   ROOT_FOLDER_PATH: "${{ inputs.root-folder-name }}"
-  TARGET_RELEASE_S3_OBJECT: ""
-  UNZIPPED_RELEASE_FOLDER: ""
-
-permissions:
-  id-token: write # This is required for OIDC requesting the JWT
 
 jobs:
   deploy-ws-publish:
@@ -77,37 +71,16 @@ jobs:
       - name: Get executable path of windows service
         run: |
           $execPath=(Get-CimInstance -ClassName Win32_Service -Filter "Name='${{ inputs.windows-service-name }}'" | Select-Object -ExpandProperty PathName)
-          # execPath = "RootFolder/INSTALLATION FILES/project_name/publish/.exe"
+          # (for example) execPath = "RootFolder/INSTALLATION FILES/project_name/publish/.exe"
           $rootPath=($execPath | Split-Path -Parent | Split-Path -Parent | Split-Path -Parent | Split-Path -Parent)
           echo "Path of executable: $execPath"
           echo "Path of root folder: $rootPath"
           if ($rootPath) { echo "ROOT_FOLDER_PATH=$rootPath" >> $env:GITHUB_ENV }
+          else { throw "Could not get Root Folder path" }
 
-      # ********** Download release folder from S3 **********
-      - name: Configure AWS credentials
-        id: configure-aws-credentials
-        uses: aws-actions/configure-aws-credentials@v2
-        with:
-          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
-          role-session-name: DeployPublish
-          aws-region: eu-central-1
-
-      - name: Get S3 object name of release "target-version"
-        run: |
-          # STEP 1: Get S3 object of release "target-version" (remove bucket subfolder (prefix) from object name)
-          $targetReleaseObj = (aws s3api list-objects-v2 --bucket "${{ inputs.s3-release-bucket }}" --prefix "${{ inputs.s3-prefix }}" --query "reverse(sort_by(Contents[?contains(Key, '${{ inputs.target-version}}.zip')], &LastModified))[0].Key" --output text).replace("${{ inputs.s3-prefix }}/", "")
-          echo "Target release object in S3: $targetReleaseObj"
-          # STEP 2: throw an error if $targetReleaseObj has no value
-          if (!$targetReleaseObj) {
-            throw "Target release version not found in S3. Invalid S3 object name."
-          }
-          echo "TARGET_RELEASE_S3_OBJECT=$targetReleaseObj" >> $env:GITHUB_ENV
-
-      - name: Download release zip from S3
-        shell: pwsh
-        # Download release zip from S3 (if it doesn't exist locally)
-        run: if(!(Test-Path "${{ env.ROOT_FOLDER_PATH }}/INSTALLATION FILES/${{ inputs.s3-prefix }}/releases/${{ env.TARGET_RELEASE_S3_OBJECT }}".replace("-latest", "")))
-          { aws s3 cp "s3://${{ inputs.s3-release-bucket }}/${{ inputs.s3-prefix }}/${{ env.TARGET_RELEASE_S3_OBJECT }}" "${{ env.ROOT_FOLDER_PATH }}/INSTALLATION FILES/${{ inputs.s3-prefix }}/releases/${{ env.TARGET_RELEASE_S3_OBJECT }}".replace("-latest", "") }
+      # ********** Copy downloaded release to project folder **********
+      - name: Copy downloaded release to project folder
+        run: Copy-Item -Path "${{ inputs.downloaded-release-path }}/${{ inputs.downloaded-release-folder }}/" -Destination "${{ env.ROOT_FOLDER_PATH }}/INSTALLATION FILES/${{ inputs.project-name }}/releases" -Recurse -Force
 
       # ********** Update windows serivce **********
       #   - name: Curl backup endpoint (to service Api)
@@ -117,28 +90,20 @@ jobs:
       - name: Stop windows service
         run: if ((Get-Service "${{ inputs.windows-service-name }}").Status -eq "Running") { Stop-Service -Name "${{ inputs.windows-service-name }}" }
 
-      - name: Unzip release zip
-        # STEP: Unzip release to same folder with same name (without ".zip")
-        run: |
-          Expand-Archive -Path "${{ env.ROOT_FOLDER_PATH }}/INSTALLATION FILES/${{ inputs.s3-prefix }}/releases/${{ env.TARGET_RELEASE_S3_OBJECT }}".replace("-latest", "") -DestinationPath "${{ env.ROOT_FOLDER_PATH }}/INSTALLATION FILES/${{ inputs.s3-prefix }}/releases" -Force
-          $unzippedReleaseFolderName="${{ env.TARGET_RELEASE_S3_OBJECT }}".replace('-latest', '').replace('.zip', '')
-          echo "UNZIPPED_RELEASE_FOLDER=$unzippedReleaseFolderName" >> "$env:GITHUB_ENV"
-
+      # TODO: check system architecture (32 or 64 bits) and install the right version of the service
+      # cmd: if ([System.Environment]::Is64BitOperatingSystem) { Write-Host "64-bit operating system" } else { Write-Host "32-bit operating system" }
       - name: Overwrite new release build folder to existing build folder
-        run: Copy-Item -Path "${{ env.ROOT_FOLDER_PATH }}/INSTALLATION FILES/${{ inputs.s3-prefix }}/releases/${{ env.UNZIPPED_RELEASE_FOLDER }}/${{ inputs.build-folder-name }}/*" -Destination "${{ env.ROOT_FOLDER_PATH }}/INSTALLATION FILES/${{ inputs.s3-prefix }}/${{ inputs.build-folder-name }}" -Recurse -Force
-
-      - name: Delete extracted (unzipped) release folder
-        run: Remove-Item -Path "${{ env.ROOT_FOLDER_PATH }}/INSTALLATION FILES/${{ inputs.s3-prefix }}/releases/${{ env.UNZIPPED_RELEASE_FOLDER }}" -Recurse -Force
+        run: Copy-Item -Path "${{ env.ROOT_FOLDER_PATH }}/INSTALLATION FILES/${{ inputs.project-name }}/releases/${{ inputs.downloaded-release-folder }}/${{ inputs.build-folder-name }}/*" -Destination "${{ env.ROOT_FOLDER_PATH }}/INSTALLATION FILES/${{ inputs.project-name }}/${{ inputs.build-folder-name }}" -Recurse -Force
 
       - name: Overwrite env file (if it exists)
-        run: if (Test-Path "${{ env.ROOT_FOLDER_PATH }}/INSTALLATION FILES/${{ inputs.s3-prefix }}/${{ inputs.env-file-name}}")
-          { Copy-Item -Path "${{ env.ROOT_FOLDER_PATH }}/INSTALLATION FILES/${{ inputs.s3-prefix }}/${{ inputs.env-file-name}}" -Destination "${{ env.ROOT_FOLDER_PATH }}/INSTALLATION FILES/${{ inputs.s3-prefix }}/${{ inputs.build-folder-name }}/${{ inputs.env-file-name}}" -Force }
+        run: if (Test-Path "${{ env.ROOT_FOLDER_PATH }}/INSTALLATION FILES/${{ inputs.project-name }}/${{ inputs.env-file-name}}")
+          { Copy-Item -Path "${{ env.ROOT_FOLDER_PATH }}/INSTALLATION FILES/${{ inputs.project-name }}/${{ inputs.env-file-name}}" -Destination "${{ env.ROOT_FOLDER_PATH }}/INSTALLATION FILES/${{ inputs.project-name }}/${{ inputs.build-folder-name }}/${{ inputs.env-file-name}}" -Force }
 
       - name: Start windows service
         run: if ((Get-Service "${{ inputs.windows-service-name }}").Status -eq "Stopped") { Start-Service -Name "${{ inputs.windows-service-name }}" }
 
-      - name: Clean up release folder (delete all files except last 5 release folders)
-        run: Get-ChildItem -Path "${{ env.ROOT_FOLDER_PATH }}/INSTALLATION FILES/${{ inputs.s3-prefix }}/releases" | Sort-Object -Property CreationTime -Descending | Select-Object -Skip 5 | Remove-Item -Recurse -Force
+      - name: Clean up release folder (delete all releases except last 5)
+        run: Get-ChildItem -Path "${{ env.ROOT_FOLDER_PATH }}/INSTALLATION FILES/${{ inputs.project-name }}/releases" | Sort-Object -Property CreationTime -Descending | Select-Object -Skip 5 | Remove-Item -Recurse -Force
 
     #   - name: Curl to MonitorHub to confirm version update succeeded or failed
     #     # ensure this step is executed even if the previous step fails.
