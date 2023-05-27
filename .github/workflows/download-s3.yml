@@ -80,7 +80,7 @@ jobs:
       - name: Get S3 object name (search by s3-obj-filter) & fail if it doesn't exists
         id: get-s3-object-name
         run: |
-          # STEP 1: Get S3 object (remove bucket subfolder (prefix) from object name)
+          # STEP 1: Get S3 object order by last-modified reverse (& remove bucket subfolder (prefix) from object name)
           $ObjName = (aws s3api list-objects-v2 --bucket "${{ inputs.s3-bucket }}" --prefix "${{ inputs.s3-prefix }}" --query "reverse(sort_by(Contents[?contains(Key, '${{ inputs.s3-obj-filter}}')], &LastModified))[0].Key" --output text).replace("${{ inputs.s3-prefix }}/", "")
           echo "Object name in S3: $ObjName"
 
@@ -118,7 +118,7 @@ jobs:
           $files = @(Get-ChildItem -Path "${{ inputs.download-path }}/" -File)
 
           # STEP 4: Concatenate the arrays & filter result by object name
-          $objName = "${{ steps.get-s3-object-name.outputs.obj-name }}".replace('.zip', '').replace('--latest', '')
+          $objName = "${{ steps.get-s3-object-name.outputs.obj-name }}".replace('.zip', '')
 
           # filtering with or without .zip ext, in case the object got unzipped after download.
           $filtered = $dirs + $files | Where-Object { $_.Name -eq "$objName" -or $_.Name -eq "$objName.zip" }
@@ -132,7 +132,7 @@ jobs:
         shell: pwsh
         if: steps.check-if-object-exists.outcome == 'success'
         # @() in an array operator - is used to force the output into an array
-        run: aws s3 cp "s3://${{ inputs.s3-bucket }}/${{ inputs.s3-prefix }}/${{ steps.get-s3-object-name.outputs.obj-name }}" "${{ inputs.download-path }}/${{ steps.get-s3-object-name.outputs.obj-name }}".replace("--latest", "")
+        run: aws s3 cp "s3://${{ inputs.s3-bucket }}/${{ inputs.s3-prefix }}/${{ steps.get-s3-object-name.outputs.obj-name }}" "${{ inputs.download-path }}/${{ steps.get-s3-object-name.outputs.obj-name }}"
 
       - name: Unzip downloaded object file & set 'obj-name' output variable
         id: unzip-file-id

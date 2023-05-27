@@ -31,15 +31,8 @@ on:
         type: string
         required: true
 
-      add-latest-marker:
-        description: "Latest marker to remove from S3 object name (e.g. '--latest')"
-        type: boolean
-        required: false
-        default: true
-
 env:
   DOWNLOADS_FOLDER_PATH: "./downloads/artifacts"
-  LATEST_MARKER: ""
 
 permissions:
   id-token: write # This is required for OIDC requesting the JWT
@@ -53,16 +46,6 @@ jobs:
       - name: Log runner label(s)
         run: |
           echo "runs-on: ${{ inputs.runs-on || 'ubuntu-latest' }}"
-
-      - name: Set LATEST_MARKER env variable
-        if: ${{ inputs.add-latest-marker == true }}
-        run: |
-          if ("${{ runner.os }}" -eq 'Linux') {
-            echo "LATEST_MARKER=--latest" >> $GITHUB_ENV
-          }
-          else {
-            echo "LATEST_MARKER=--latest" >> $env:GITHUB_ENV
-          }
 
       # ********** Download artifact **********
       - name: Download artifact file
@@ -97,45 +80,7 @@ jobs:
           }
 
       - name: Upload new release folder (zipped) to S3 (add 'latest-marker')
-        run: aws s3 cp "${{ env.DOWNLOADS_FOLDER_PATH }}/${{ inputs.artifact-name }}" "s3://${{ inputs.s3-bucket-name }}/${{ inputs.s3-prefix }}/${{ inputs.artifact-name }}${{ env.LATEST_MARKER }}"
-
-      - name: Remove 'latest-marker' from any S3 object name (except latest uploaded one)
-        if: ${{ inputs.add-latest-marker == true }}
-        shell: pwsh
-        run: |
-          # STEP 1: Get S3 objects with 'latest-marker'   
-          $objsWithLatestMarker = (aws s3api list-objects-v2 --bucket "${{ inputs.s3-bucket-name }}" --prefix "${{ inputs.s3-prefix }}" --query "reverse(sort_by(Contents[?ends_with(Key, '${{ env.LATEST_MARKER }}')], &LastModified)[].Key)" --output text)
-
-          # STEP 2: Check if any objects were found
-          echo "S3 Objects containing 'latest-marker': $objsWithLatestMarker"
-
-          if ($objsWithLatestMarker) {
-            # STEP 3: Convert object keys (string) to array
-            $objsWithLatestMarkerArray = $objsWithLatestMarker.Split()
-
-            # STEP 4: Exit if less than 2 objects were found (this means only last uploaded object has 'latest-marker' so no need to rename)
-            if ($objsWithLatestMarkerArray.Length -lt 2) {
-              echo "Only 1 object containing 'latest-marker' found in S3 bucket. No need to rename."
-              exit 0
-            }
-
-            # STEP 5: Remove first item from array (to keep marker on the latest uploaded object)
-            $objsWithLatestMarkerArray = $objsWithLatestMarkerArray[1..($objsWithLatestMarkerArray.Length-1)]
-            echo "Objects to rename (after removing last modified object): $objsWithLatestMarkerArray"
-
-            foreach ($object in $objsWithLatestMarkerArray) {
-              $newObjName = $object.Replace("${{ inputs.s3-prefix }}/","").Replace("${{ env.LATEST_MARKER }}","")
-              echo "Old object name: $object"
-              echo "New object name: $newObjName"
-              
-              # STEP 6: If oldObj & newObj are not equal, remove 'latest-marker' (rename object)
-              if ($object -ne $newObjName) {
-                aws s3 mv "s3://${{ inputs.s3-bucket-name }}/$object" "s3://${{ inputs.s3-bucket-name }}/${{ inputs.s3-prefix }}/$newObjName"
-              }
-            }
-          } else {
-            echo "No objects containing 'latest-marker' found in S3 bucket."
-          }
+        run: aws s3 cp "${{ env.DOWNLOADS_FOLDER_PATH }}/${{ inputs.artifact-name }}" "s3://${{ inputs.s3-bucket-name }}/${{ inputs.s3-prefix }}/${{ inputs.artifact-name }}"
 
       - name: Delete downloaded artifact file
         shell: pwsh
