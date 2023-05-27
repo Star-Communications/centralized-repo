@@ -79,8 +79,8 @@ jobs:
           $destinationPath="${{ env.ROOT_FOLDER_PATH }}/INSTALLATION FILES/${{ inputs.project-name }}/releases"
 
           # STEP 1: Create destination folder if it doesn't exist
-          if (!(Test-Path -Path $destinationPath)) {
-              New-Item -ItemType Directory -Force -Path $destinationPath
+          if (!(Test-Path -Path "$destinationPath")) {
+              New-Item -ItemType Directory -Force -Path "$destinationPath"
           }
 
           # STEP 2: Move downloaded release folder to destination folder

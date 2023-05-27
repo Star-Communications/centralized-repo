@@ -155,10 +155,10 @@ jobs:
             if($childItemCount -eq 1 -and $childDir -eq $objName.replace(".zip", "")) {
                 $parentDirPath = "$objPath".replace(".zip", "")
                 # STEP 4.a: Rename parent dir
-                Rename-Item -Path $parentDirPath -NewName "$objName _old"
+                Rename-Item -Path "$parentDirPath" -NewName "$objName _old"
 
                 # STEP 4.b: Move child dir to parent dir
-                Move-Item -Path "$parentDirPath _old/$childDir" -Destination (Split-Path -Path $parentDirPath -Parent) -Force
+                Move-Item -Path "$parentDirPath _old/$childDir" -Destination (Split-Path -Path "$parentDirPath" -Parent) -Force
 
                 # STEP 4.c: Delete old parent dir
                 Remove-Item -Path "$parentDirPath _old" -Force -Recurse
