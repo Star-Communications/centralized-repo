@@ -71,26 +71,29 @@ jobs:
       # Set shell:pwsh so that cmds below work on both Windows & Linux runners.
       # (NOTE: Windows runners can't access bash shell - "Access is denied.")
 
-      # NOT NEEDED?? As release-drafter step above creates a new version even if no new changes are found.
+      # NOT NEEDED?? As release-drafter step creates a new version even if no new changes are found.
       - name: Check if file already exists in S3
         shell: pwsh
         run: |
-          # STEP 1: Get S3 objects with same artifact-name (search with "${{ inputs.latest-marker }}" suffix for releases)
+          # STEP 1: Get S3 objects that start with same artifact-name
           echo "Artifact Name: ${{ inputs.artifact-name }}"
-          $existingObjs = (aws s3api list-objects-v2 --bucket "${{ inputs.s3-bucket-name }}" --prefix "${{ inputs.s3-prefix }}" --query "Contents[?Key == '${{ inputs.artifact-name }}.zip' || Key == '${{ inputs.artifact-name }}${{ inputs.latest-marker }}.zip'].Key" --output text)
-          echo "S3 Objects with same release folder name: $existingObjs"
+          $existingObjs = (aws s3api list-objects-v2 --bucket "${{ inputs.s3-bucket-name }}" --prefix "${{ inputs.s3-prefix }}" --query "Contents[?starts_with(Key, `${{ inputs.artifact-name }}`)].Key" --output text)
+          echo "S3 Objects with same File name: $existingObjs"
 
           # STEP 2: If any objects were found, throw error
           if ($existingObjs) {
-            throw "Release folder already exists in S3."
+            throw "File already exists in S3."
           }
 
-      - name: Remove 'latest-marker' from any S3 object name # this is also for releases
+      - name: Upload new release folder (zipped) to S3 (add 'latest-marker')
+        run: aws s3 cp "./download/${{ inputs.artifact-name }}.zip" "s3://${{ inputs.s3-bucket-name }}/${{ inputs.s3-prefix }}/${{ inputs.artifact-name }}.zip${{ inputs.latest-marker }}"
+
+      - name: Remove 'latest-marker' from any S3 object name (except latest uploaded one)
         if: ${{ inputs.latest-marker != '' }}
         shell: pwsh
         run: |
           # STEP 1: Get S3 objects with 'latest-marker'   
-          $objsWithLatestMarker = (aws s3api list-objects-v2 --bucket "${{ inputs.s3-bucket-name }}" --prefix "${{ inputs.s3-prefix }}" --query 'Contents[?ends_with(Key, `${{ inputs.latest-marker }}.zip`)].Key' --output text)
+          $objsWithLatestMarker = (aws s3api list-objects-v2 --bucket "${{ inputs.s3-bucket-name }}" --prefix "${{ inputs.s3-prefix }}" --query "reverse(sort_by(Contents[?ends_with(Key, '${{ inputs.latest-marker }}')], &LastModified)[].Key)" --output text)
 
           # STEP 2: Check if any objects were found
           echo "S3 Objects containing 'latest-marker': $objsWithLatestMarker"
@@ -98,12 +101,23 @@ jobs:
           if ($objsWithLatestMarker) {
             # STEP 3: Convert object keys (string) to array
             $objsWithLatestMarkerArray = $objsWithLatestMarker.Split()
+
+            # STEP 4: Exit if less than 2 objects were found (this means only last uploaded object has 'latest-marker' so no need to rename)
+            if ($objsWithLatestMarkerArray.Length -lt 2) {
+              echo "Only 1 object containing 'latest-marker' found in S3 bucket. No need to rename."
+              exit 0
+            }
+
+            # STEP 5: Remove first item from array (to keep marker on the latest uploaded object)
+            $objsWithLatestMarkerArray = $objsWithLatestMarkerArray[1..($objsWithLatestMarkerArray.Length-1)]
+            echo "Objects to rename (after removing last modified object): $objsWithLatestMarkerArray"
+
             foreach ($object in $objsWithLatestMarkerArray) {
-              $newObjName = $object.Replace("${{ inputs.s3-prefix }}/","").Replace("${{ inputs.latest-marker }}.zip",".zip")
+              $newObjName = $object.Replace("${{ inputs.s3-prefix }}/","").Replace("${{ inputs.latest-marker }}","")
               echo "Old object name: $object"
               echo "New object name: $newObjName"
               
-              # STEP 4: If oldObj & newObj are not equal, remove 'latest-marker' (rename object)
+              # STEP 6: If oldObj & newObj are not equal, remove 'latest-marker' (rename object)
               if ($object -ne $newObjName) {
                 aws s3 mv "s3://${{ inputs.s3-bucket-name }}/$object" "s3://${{ inputs.s3-bucket-name }}/${{ inputs.s3-prefix }}/$newObjName"
               }
@@ -111,6 +125,3 @@ jobs:
           } else {
             echo "No objects containing 'latest-marker' found in S3 bucket."
           }
-
-      - name: Upload new release folder (zipped) to S3 (add 'latest-marker')
-        run: aws s3 cp "./download/${{ inputs.artifact-name }}.zip" "s3://${{ inputs.s3-bucket-name }}/${{ inputs.s3-prefix }}/${{ inputs.artifact-name }}${{ inputs.latest-marker }}.zip"
