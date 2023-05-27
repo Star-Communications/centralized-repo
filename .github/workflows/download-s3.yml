@@ -150,7 +150,7 @@ jobs:
             # STEP 3: Remove the zip file
             Remove-Item "$objPath"
 
-            STEP 4: If unzipped dir contains only one dir (with same name), move child dir to parent dir (overwrite)
+            # STEP 4: If unzipped dir contains only one dir (with same name), move child dir to parent dir (overwrite)
             # so instead of "unzippedDir/unzippedDir/my-files" will have "unzippedDir/my-files"
             $childItemCount = (Get-ChildItem -Path "$objPath".replace(".zip", "") -Force | Measure-Object -Property Name).Count
             $childDir = (Get-ChildItem -Path "$objPath".replace(".zip", "") -Directory | Select-Object -First 1).Name
