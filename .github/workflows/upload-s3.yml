@@ -58,13 +58,11 @@ jobs:
         if: ${{ inputs.add-latest-marker == true }}
         run: |
           if ("${{ runner.os }}" -eq 'Linux') {
-            echo "LATEST_MARKER='--latest'" >> $GITHUB_ENV
+            echo "LATEST_MARKER=--latest" >> $GITHUB_ENV
           }
           else {
-            echo "LATEST_MARKER='--latest'" >> $env:GITHUB_ENV
+            echo "LATEST_MARKER=--latest" >> $env:GITHUB_ENV
           }
-
-          echo "Set LATEST_MARKER env var to '${{ env.LATEST_MARKER }}'"
 
       # ********** Download artifact **********
       - name: Download artifact file
