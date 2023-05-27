@@ -87,7 +87,7 @@ jobs:
           if (!$ObjName) {
             throw "Object not found in S3. Invalid s3-obj-filter."
           }
-          # STEP 3: set $ObjName as an env variable (check os to use appropriate syntax)
+          # STEP 3: set $ObjName as an env variable (check OS to use appropriate syntax)
           if ("${{ runner.os }}" -eq 'Linux') {
               echo "obj-name=$ObjName" >> $GITHUB_OUTPUT
           }
@@ -135,10 +135,27 @@ jobs:
           $objName = "${{ steps.get-s3-object-name.outputs.obj-name }}"
           if(("${{ inputs.unzip-file }}" -eq "true") -and (Test-Path "$objPath") -and (Get-Item "$objPath").Extension -eq ".zip")
           {
-            # STEP 2: Unzip the object (use -Force to overwrite existing files)
+            # STEP 2: Unzip the downloaded object to a folder with same object name (use -Force to overwrite existing files)
             Expand-Archive -Path "$objPath" -DestinationPath "$objPath".replace(".zip", "") -Force
             # STEP 3: Remove the zip file
             Remove-Item "$objPath"
+
+            STEP 4: If unzipped dir contains only one dir (with same name), move child dir to parent dir (overwrite)
+            # so instead of "unzippedDir/unzippedDir/my-files" will have "unzippedDir/my-files"
+            $childItemCount = (Get-ChildItem -Path "$objPath".replace(".zip", "") -Force | Measure-Object -Property Name).Count
+            $childDir = (Get-ChildItem -Path "$objPath".replace(".zip", "") -Directory | Select-Object -First 1).Name
+
+            if($childItemCount -eq 1 -and $childDir -eq $objName.replace(".zip", "")) {
+                $parentDirPath = "$objPath".replace(".zip", "")
+                # STEP 4.a: Rename parent dir
+                Rename-Item -Path $parentDirPath -NewName "$objName _old"
+
+                # STEP 4.b: Move child dir to parent dir
+                Move-Item -Path "$parentDirPath _old/$childDir" -Destination (Split-Path -Path $parentDirPath -Parent) -Force
+
+                # STEP 4.c: Delete old parent dir
+                Remove-Item -Path "$parentDirPath _old" -Force -Recurse
+            }
           }
           else {
             echo "Object '$objName' doesn't exist locally or is not a zip file. Skipping unzip."
@@ -146,7 +163,7 @@ jobs:
           # STEP 5: Remove ".zip" from the object name
           if ("${{ inputs.unzip-file }}" -eq "true") { $objName = "$objName".replace(".zip", "") }
 
-          # STEP 6: Set $objName as an env variable (check os to use appropriate syntax)
+          # STEP 6: Set $objName as an env variable (check OS to use appropriate syntax)
           if ("${{ runner.os }}" -eq 'Linux') {
             echo "downloaded-name=$objName" >> $GITHUB_OUTPUT
           }
