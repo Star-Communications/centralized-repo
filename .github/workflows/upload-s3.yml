@@ -77,7 +77,7 @@ jobs:
         run: |
           # STEP 1: Get S3 objects that start with same artifact-name
           echo "Artifact Name: ${{ inputs.artifact-name }}"
-          $existingObjs = (aws s3api list-objects-v2 --bucket "${{ inputs.s3-bucket-name }}" --prefix "${{ inputs.s3-prefix }}" --query "Contents[?starts_with(Key, `${{ inputs.artifact-name }}`)].Key" --output text)
+          $existingObjs = (aws s3api list-objects-v2 --bucket "${{ inputs.s3-bucket-name }}" --prefix "${{ inputs.s3-prefix }}" --query "Contents[?starts_with(Key, '${{ inputs.artifact-name }}')].Key" --output text)
           echo "S3 Objects with same File name: $existingObjs"
 
           # STEP 2: If any objects were found, throw error
