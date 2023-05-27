@@ -86,7 +86,7 @@ jobs:
           }
 
       - name: Upload new release folder (zipped) to S3 (add 'latest-marker')
-        run: aws s3 cp "./download/${{ inputs.artifact-name }}.zip" "s3://${{ inputs.s3-bucket-name }}/${{ inputs.s3-prefix }}/${{ inputs.artifact-name }}.zip${{ inputs.latest-marker }}"
+        run: aws s3 cp "${{ env.DOWNLOADS_FOLDER_PATH }}/${{ inputs.artifact-name }}.zip" "s3://${{ inputs.s3-bucket-name }}/${{ inputs.s3-prefix }}/${{ inputs.artifact-name }}.zip${{ inputs.latest-marker }}"
 
       - name: Remove 'latest-marker' from any S3 object name (except latest uploaded one)
         if: ${{ inputs.latest-marker != '' }}
