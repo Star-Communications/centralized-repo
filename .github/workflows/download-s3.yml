@@ -31,6 +31,11 @@ on:
         required: false
         default: ""
 
+      download-path:
+        description: "The path to download the object to"
+        type: string
+        required: true
+
       unzip-file:
         description: "Unzip downloaded S3 object file"
         type: boolean
@@ -38,12 +43,9 @@ on:
         default: false
 
     outputs:
-      downloads-folder-path:
-        description: "The path to the downloads folder"
-        value: ${{ jobs.download-from-s3.outputs.output1 }}
       downloaded-name:
         description: "The name of the downloaded file or folder (if unzipped)"
-        value: ${{ jobs.download-from-s3.outputs.output2 }}
+        value: ${{ jobs.download-from-s3.outputs.output1 }}
 
 permissions:
   id-token: write # This is required for OIDC requesting the JWT
@@ -53,8 +55,7 @@ jobs:
     runs-on: ${{ inputs.runs-on }}
 
     outputs:
-      output1: ${{ steps.set-downloads-path.outputs.downloads-folder-path }}
-      output2: ${{ steps.unzip-file-id.outputs.downloaded-name }}
+      output1: ${{ steps.unzip-file-id.outputs.downloaded-name }}
 
     steps:
       # This job is not intended to run on ubuntu-latest. It downloads the s3 object on the runner's local machine for another job to use. When ununtu-latest the machine gets destroyed after the job is done.
@@ -65,29 +66,6 @@ jobs:
           if ("${{ inputs.runs-on }}" -eq 'ubuntu-latest') {
             echo "This workflow is not intended to run on ubuntu-latest. Please use self-hosted runner label(s)."
             exit 1
-          }
-
-      - name: Set 'downloads-folder-path' output variable
-        id: set-downloads-path
-        shell: pwsh
-        run: |
-          # STEP 1: Get current directory path
-          $currentDir = (Get-Location).Path
-
-          # STEP 2: Set downloadsFolderPath based on whether inputs.s3-prefix is '' or not
-          if ("${{ inputs.s3-prefix }}" -eq '') {
-            $downloadsFolderPath = "$currentDir/downloads"
-          }
-          else {
-            $downloadsFolderPath = "$currentDir/downloads/${{ inputs.s3-prefix }}"
-          }
-
-          # STEP 3: set $downloadsFolderPath as an output variable (check OS to use appropriate syntax)
-          if ("${{ runner.os }}" -eq 'Linux') {
-            echo "downloads-folder-path=$downloadsFolderPath" >> $GITHUB_OUTPUT
-          }
-          else {
-            echo "downloads-folder-path=$downloadsFolderPath" >> $env:GITHUB_OUTPUT
           }
 
       # ********** Download object from S3 **********
@@ -121,20 +99,20 @@ jobs:
         shell: pwsh
         # @() in an array operator - is used to force the output into an array
         run: |
-          # STEP 1: Create downloads folder if it doesn't exist (to avoid error in 'Get-ChildItem')
-          if(!(Test-Path "${{ steps.set-downloads-path.outputs.downloads-folder-path }}")) {
-            New-Item -ItemType Directory -Force -Path "${{ steps.set-downloads-path.outputs.downloads-folder-path }}"
-          }
+          # STEP 1: Check if 'download-path' is a valid path
+            if(!(Test-Path "${{ inputs.download-path }}")) {
+                throw "Invalid 'download-path' input. The following path does not exist: '${{ inputs.download-path }}'."
+            }
 
-          # STEP 2: Check if downloaded object exists locally (as a directory or file)
+          # STEP 2: Check if S3 object already exists locally (as a directory or file)
 
-          # STEP 2.a: Get all directories in the downloads folder (as array) (only if caller wants to unzip the file, otherwise we will need to get the zipped file)
+          # STEP 2.a: Get all directories in the 'download-path' (as array) (only if 'unzip-file'=true, cause then unzipped S3 object could be a directory)
           if("${{ inputs.unzip-file }}" -eq "true") {
-            $dirs = @(Get-ChildItem -Path "${{ steps.set-downloads-path.outputs.downloads-folder-path }}/" -Directory)
+            $dirs = @(Get-ChildItem -Path "${{ inputs.download-path }}/" -Directory)
           }
 
-          # STEP 2.b: Get all files (to get zipped files) in the downloads folder (as array)
-          $files = @(Get-ChildItem -Path "${{ steps.set-downloads-path.outputs.downloads-folder-path }}/" -File)
+          # STEP 2.b: Get all files (to get zipped files) in the 'download-path' (as array)
+          $files = @(Get-ChildItem -Path "${{ inputs.download-path }}/" -File)
 
           # STEP 2.c: Concatenate the arrays & filter result by object name
           $objName = "${{ steps.get-s3-object-name.outputs.obj-name }}".replace('.zip', '')
@@ -143,7 +121,7 @@ jobs:
 
           # STEP 2: Download the object if it doesn't exist locally
           if(!($filtered)) {
-            aws s3 cp "s3://${{ inputs.s3-bucket }}/${{ inputs.s3-prefix }}/${{ steps.get-s3-object-name.outputs.obj-name }}" "${{ steps.set-downloads-path.outputs.downloads-folder-path }}/${{ steps.get-s3-object-name.outputs.obj-name }}" 
+            aws s3 cp "s3://${{ inputs.s3-bucket }}/${{ inputs.s3-prefix }}/${{ steps.get-s3-object-name.outputs.obj-name }}" "${{ inputs.download-path }}/${{ steps.get-s3-object-name.outputs.obj-name }}" 
           }
           else {
             echo "Object '$objName' already exists locally. Skipping download."
@@ -153,7 +131,7 @@ jobs:
         id: unzip-file-id
         run: |
           # STEP 1: Check if downloaded object exists and is a zip file
-          $objPath = "${{ steps.set-downloads-path.outputs.downloads-folder-path }}/${{ steps.get-s3-object-name.outputs.obj-name }}"
+          $objPath = "${{ inputs.download-path }}/${{ steps.get-s3-object-name.outputs.obj-name }}"
           $objName = "${{ steps.get-s3-object-name.outputs.obj-name }}"
           if(("${{ inputs.unzip-file }}" -eq "true") -and (Test-Path "$objPath") -and (Get-Item "$objPath").Extension -eq ".zip")
           {
