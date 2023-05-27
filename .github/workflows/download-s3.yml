@@ -99,9 +99,9 @@ jobs:
         shell: pwsh
         # @() in an array operator - is used to force the output into an array
         run: |
-          # STEP 1: Check if 'download-path' is a valid path
-            if(!(Test-Path "${{ inputs.download-path }}")) {
-                throw "Invalid 'download-path' input. The following path does not exist: '${{ inputs.download-path }}'."
+          # STEP 1: Create 'download-path' if it doesn't exist
+            if(!(Test-Path -Path "${{ inputs.download-path }}")) {
+                New-Item -ItemType Directory -Force -Path "${{ inputs.download-path }}"
             }
 
           # STEP 2: Check if S3 object already exists locally (as a directory or file)
