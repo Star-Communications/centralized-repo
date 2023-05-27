@@ -80,16 +80,19 @@ jobs:
       - name: Get S3 object name (search by s3-obj-filter) & fail if it doesn't exists
         id: get-s3-object-name
         run: |
-          # STEP 1: Get S3 object order by last-modified reverse (& remove bucket subfolder (prefix) from object name)
-          $ObjName = (aws s3api list-objects-v2 --bucket "${{ inputs.s3-bucket }}" --prefix "${{ inputs.s3-prefix }}" --query "reverse(sort_by(Contents[?contains(Key, '${{ inputs.s3-obj-filter}}')], &LastModified))[0].Key" --output text).replace("${{ inputs.s3-prefix }}/", "")
+          # STEP 1: Trim the 's3-obj-filter' input (in case it has spaces)
+          $s3ObjFilter = "${{ inputs.s3-obj-filter }}".Trim()
+
+          # STEP 2: Get S3 object order by last-modified reverse (& remove bucket subfolder (prefix) from object name)
+          $ObjName = (aws s3api list-objects-v2 --bucket "${{ inputs.s3-bucket }}" --prefix "${{ inputs.s3-prefix }}" --query "reverse(sort_by(Contents[?contains(Key, '$s3ObjFilter')], &LastModified))[0].Key").replace("${{ inputs.s3-prefix }}/", "")
           echo "Object name in S3: $ObjName"
 
-          # STEP 2: throw an error if $ObjName has no value
+          # STEP 3: throw an error if $ObjName has no value
           if (!$ObjName) {
             throw "Object not found in S3. Invalid s3-obj-filter: '${{ inputs.s3-obj-filter}}'."
           }
 
-          # STEP 3: set $ObjName as an env variable (check OS to use appropriate syntax)
+          # STEP 4: set $ObjName as an env variable (check OS to use appropriate syntax)
           if ("${{ runner.os }}" -eq 'Linux') {
               echo "obj-name=$ObjName" >> $GITHUB_OUTPUT
           }
