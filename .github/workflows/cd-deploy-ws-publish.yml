@@ -27,8 +27,8 @@ on:
         type: string
         required: true
 
-      # if path to downloaded release in "C:\actions-runner\_work\MyProj\MyProj\downloads\my-proj\my-proj-v0.1.29-latest",
-      # then "downloaded-release-path" = "C:\actions-runner\_work\MyProj\MyProj\downloads\my-proj"
+      # if path to downloaded release in "C:\actions-runner\_work\MyProj\downloads\my-proj\my-proj-v0.1.29-latest",
+      # then "downloaded-release-path" = "C:\actions-runner\_work\MyProj\downloads\my-proj"
       # and "downloaded-release-folder" = "my-proj-v0.1.29-latest"
       downloaded-release-path:
         description: "Path in local machine of the downloaded release folder."
@@ -40,13 +40,8 @@ on:
         type: string
         required: true
 
-      build-folder-name:
-        description: "Name of the folder containing the build files (eg. 'publish' or 'dist')"
-        type: string
-        required: true
-
       env-file-name:
-        description: "Name of the environment file (eg. 'appsettings.json', 'appsettings.prod.json' or '.env')"
+        description: "Name of the environment file (eg. 'appsettings.json' or 'appsettings.docker.json')"
         type: string
         required: true
 
@@ -79,8 +74,17 @@ jobs:
           else { throw "Could not get Root Folder path" }
 
       # ********** Copy downloaded release to project folder **********
-      - name: Copy downloaded release to project folder
-        run: Copy-Item -Path "${{ inputs.downloaded-release-path }}/${{ inputs.downloaded-release-folder }}/" -Destination "${{ env.ROOT_FOLDER_PATH }}/INSTALLATION FILES/${{ inputs.project-name }}/releases" -Recurse -Force
+      - name: Move downloaded release to project folder
+        run: |
+          $destinationPath="${{ env.ROOT_FOLDER_PATH }}/INSTALLATION FILES/${{ inputs.project-name }}/releases"
+
+          # STEP 1: Create destination folder if it doesn't exist
+          if (!(Test-Path -Path $destinationPath)) {
+              New-Item -ItemType Directory -Force -Path $destinationPath
+          }
+
+          # STEP 2: Move downloaded release folder to destination folder
+          Move-Item -Path "${{ inputs.downloaded-release-path }}/${{ inputs.downloaded-release-folder }}" -Destination "$destinationPath/" -Force
 
       # ********** Update windows serivce **********
       #   - name: Curl backup endpoint (to service Api)
@@ -93,11 +97,11 @@ jobs:
       # TODO: check system architecture (32 or 64 bits) and install the right version of the service
       # cmd: if ([System.Environment]::Is64BitOperatingSystem) { Write-Host "64-bit operating system" } else { Write-Host "32-bit operating system" }
       - name: Overwrite new release build folder to existing build folder
-        run: Copy-Item -Path "${{ env.ROOT_FOLDER_PATH }}/INSTALLATION FILES/${{ inputs.project-name }}/releases/${{ inputs.downloaded-release-folder }}/${{ inputs.build-folder-name }}/*" -Destination "${{ env.ROOT_FOLDER_PATH }}/INSTALLATION FILES/${{ inputs.project-name }}/${{ inputs.build-folder-name }}" -Recurse -Force
+        run: Copy-Item -Path "${{ env.ROOT_FOLDER_PATH }}/INSTALLATION FILES/${{ inputs.project-name }}/releases/${{ inputs.downloaded-release-folder }}/publish/*" -Destination "${{ env.ROOT_FOLDER_PATH }}/INSTALLATION FILES/${{ inputs.project-name }}/publish" -Recurse -Force
 
       - name: Overwrite env file (if it exists)
         run: if (Test-Path "${{ env.ROOT_FOLDER_PATH }}/INSTALLATION FILES/${{ inputs.project-name }}/${{ inputs.env-file-name}}")
-          { Copy-Item -Path "${{ env.ROOT_FOLDER_PATH }}/INSTALLATION FILES/${{ inputs.project-name }}/${{ inputs.env-file-name}}" -Destination "${{ env.ROOT_FOLDER_PATH }}/INSTALLATION FILES/${{ inputs.project-name }}/${{ inputs.build-folder-name }}/${{ inputs.env-file-name}}" -Force }
+          { Copy-Item -Path "${{ env.ROOT_FOLDER_PATH }}/INSTALLATION FILES/${{ inputs.project-name }}/${{ inputs.env-file-name}}" -Destination "${{ env.ROOT_FOLDER_PATH }}/INSTALLATION FILES/${{ inputs.project-name }}/publish/${{ inputs.env-file-name}}" -Force }
 
       - name: Start windows service
         run: if ((Get-Service "${{ inputs.windows-service-name }}").Status -eq "Stopped") { Start-Service -Name "${{ inputs.windows-service-name }}" }
