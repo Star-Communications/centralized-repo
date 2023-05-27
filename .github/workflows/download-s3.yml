@@ -132,7 +132,7 @@ jobs:
         shell: pwsh
         if: steps.check-if-object-exists.outcome == 'success'
         # @() in an array operator - is used to force the output into an array
-        run: aws s3 cp "s3://${{ inputs.s3-bucket }}/${{ inputs.s3-prefix }}/${{ steps.get-s3-object-name.outputs.obj-name }}" "${{ inputs.download-path }}/${{ steps.get-s3-object-name.outputs.obj-name }}"
+        run: aws s3 cp "s3://${{ inputs.s3-bucket }}/${{ inputs.s3-prefix }}/${{ steps.get-s3-object-name.outputs.obj-name }}" "${{ inputs.download-path }}/${{ steps.get-s3-object-name.outputs.obj-name }}".replace("--latest", "")
 
       - name: Unzip downloaded object file & set 'obj-name' output variable
         id: unzip-file-id
