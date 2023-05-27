@@ -17,7 +17,7 @@ on:
         default: "ubuntu-latest"
 
       artifact-name:
-        description: "Name of the file to download from artifact & upload to S3)"
+        description: "Name of the file to download from artifact (& upload to S3)"
         type: string
         required: true
 
@@ -86,7 +86,7 @@ jobs:
           }
 
       - name: Upload new release folder (zipped) to S3 (add 'latest-marker')
-        run: aws s3 cp "${{ env.DOWNLOADS_FOLDER_PATH }}/${{ inputs.artifact-name }}.zip" "s3://${{ inputs.s3-bucket-name }}/${{ inputs.s3-prefix }}/${{ inputs.artifact-name }}.zip${{ inputs.latest-marker }}"
+        run: aws s3 cp "${{ env.DOWNLOADS_FOLDER_PATH }}/${{ inputs.artifact-name }}" "s3://${{ inputs.s3-bucket-name }}/${{ inputs.s3-prefix }}/${{ inputs.artifact-name }}${{ inputs.latest-marker }}"
 
       - name: Remove 'latest-marker' from any S3 object name (except latest uploaded one)
         if: ${{ inputs.latest-marker != '' }}
@@ -125,3 +125,7 @@ jobs:
           } else {
             echo "No objects containing 'latest-marker' found in S3 bucket."
           }
+
+    #   - name: Delete downloaded artifact file
+    #     shell: pwsh
+    #     run: Remove-Item -Path "${{ env.DOWNLOADS_FOLDER_PATH }}/${{ inputs.artifact-name }}" -Force
