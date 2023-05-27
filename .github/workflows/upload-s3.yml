@@ -31,8 +31,8 @@ on:
         type: string
         required: true
 
-      s3-suffix:
-        description: "Suffix to remove from S3 object name (e.g. '-latest')"
+      latest-marker:
+        description: "Latest marker to remove from S3 object name (e.g. '-latest')"
         type: string
         required: false
         default: ""
@@ -75,9 +75,9 @@ jobs:
       - name: Check if file already exists in S3
         shell: pwsh
         run: |
-          # STEP 1: Get S3 objects with same artifact-name (search with "${{ inputs.s3-suffix }}" suffix for releases)
+          # STEP 1: Get S3 objects with same artifact-name (search with "${{ inputs.latest-marker }}" suffix for releases)
           echo "Artifact Name: ${{ inputs.artifact-name }}"
-          $existingObjs = (aws s3api list-objects-v2 --bucket "${{ inputs.s3-bucket-name }}" --prefix "${{ inputs.s3-prefix }}" --query "Contents[?Key == '${{ inputs.artifact-name }}.zip' || Key == '${{ inputs.artifact-name }}${{ inputs.s3-suffix }}.zip'].Key" --output text)
+          $existingObjs = (aws s3api list-objects-v2 --bucket "${{ inputs.s3-bucket-name }}" --prefix "${{ inputs.s3-prefix }}" --query "Contents[?Key == '${{ inputs.artifact-name }}.zip' || Key == '${{ inputs.artifact-name }}${{ inputs.latest-marker }}.zip'].Key" --output text)
           echo "S3 Objects with same release folder name: $existingObjs"
 
           # STEP 2: If any objects were found, throw error
@@ -85,29 +85,32 @@ jobs:
             throw "Release folder already exists in S3."
           }
 
-      - name: Remove suffix from any S3 object name # this is also for releases
+      - name: Remove 'latest-marker' from any S3 object name # this is also for releases
+        if: ${{ inputs.latest-marker != '' }}
         shell: pwsh
         run: |
-          # STEP 1: Get S3 objects with suffix   
-          $latestObjectKeys = (aws s3api list-objects-v2 --bucket "${{ inputs.s3-bucket-name }}" --prefix "${{ inputs.s3-prefix }}" --query 'Contents[?ends_with(Key, `${{ inputs.s3-suffix }}.zip`)].Key' --output text)
+          # STEP 1: Get S3 objects with 'latest-marker'   
+          $objsWithLatestMarker = (aws s3api list-objects-v2 --bucket "${{ inputs.s3-bucket-name }}" --prefix "${{ inputs.s3-prefix }}" --query 'Contents[?ends_with(Key, `${{ inputs.latest-marker }}.zip`)].Key' --output text)
 
           # STEP 2: Check if any objects were found
-          echo "S3 Objects containing 'latest': $latestObjectKeys"
+          echo "S3 Objects containing 'latest-marker': $objsWithLatestMarker"
 
-          if ($latestObjectKeys) {
+          if ($objsWithLatestMarker) {
             # STEP 3: Convert object keys (string) to array
-            $latestObjectArray = $latestObjectKeys.Split()
-            foreach ($object in $latestObjectArray) {
-              $newObjName = $object.Replace("${{ inputs.s3-prefix }}/","").Replace("${{ inputs.s3-suffix }}.zip",".zip")
+            $objsWithLatestMarkerArray = $objsWithLatestMarker.Split()
+            foreach ($object in $objsWithLatestMarkerArray) {
+              $newObjName = $object.Replace("${{ inputs.s3-prefix }}/","").Replace("${{ inputs.latest-marker }}.zip",".zip")
               echo "Old object name: $object"
               echo "New object name: $newObjName"
               
-              # STEP 4: Rename object (remove suffix)
-              aws s3 mv "s3://${{ inputs.s3-bucket-name }}/$object" "s3://${{ inputs.s3-bucket-name }}/${{ inputs.s3-prefix }}/$newObjName"
+              # STEP 4: If oldObj & newObj are not equal, remove 'latest-marker' (rename object)
+              if ($object -ne $newObjName) {
+                aws s3 mv "s3://${{ inputs.s3-bucket-name }}/$object" "s3://${{ inputs.s3-bucket-name }}/${{ inputs.s3-prefix }}/$newObjName"
+              }
             }
           } else {
-            echo "No objects containing suffix found in S3 bucket."
+            echo "No objects containing 'latest-marker' found in S3 bucket."
           }
 
-      - name: Upload new release folder (zipped) to S3 (add suffix)
-        run: aws s3 cp "./download/${{ inputs.artifact-name }}.zip" "s3://${{ inputs.s3-bucket-name }}/${{ inputs.s3-prefix }}/${{ inputs.artifact-name }}${{ inputs.s3-suffix }}.zip"
+      - name: Upload new release folder (zipped) to S3 (add 'latest-marker')
+        run: aws s3 cp "./download/${{ inputs.artifact-name }}.zip" "s3://${{ inputs.s3-bucket-name }}/${{ inputs.s3-prefix }}/${{ inputs.artifact-name }}${{ inputs.latest-marker }}.zip"
