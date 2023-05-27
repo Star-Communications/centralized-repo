@@ -84,11 +84,11 @@ jobs:
           $s3ObjFilter = "${{ inputs.s3-obj-filter }}".Trim()
 
           # STEP 2: Get S3 object order by last-modified reverse (& remove bucket subfolder (prefix) from object name)
-          $ObjName = (aws s3api list-objects-v2 --bucket "${{ inputs.s3-bucket }}" --prefix "${{ inputs.s3-prefix }}" --query "reverse(sort_by(Contents[?contains(Key, '$s3ObjFilter')], &LastModified))[0].Key").replace("${{ inputs.s3-prefix }}/", "")
-          echo "Object name in S3: $ObjName"
+          $ObjName = (aws s3api list-objects-v2 --bucket "${{ inputs.s3-bucket }}" --prefix "${{ inputs.s3-prefix }}" --query "reverse(sort_by(Contents[?contains(Key, '$s3ObjFilter')], &LastModified))[0].Key" --output text).replace("${{ inputs.s3-prefix }}/", "")
+          echo "Object name in S3: '$ObjName'"
 
           # STEP 3: throw an error if $ObjName has no value
-          if (!$ObjName) {
+          if (!$ObjName -or ($ObjName -eq 'None')) {
             throw "Object not found in S3. Invalid s3-obj-filter: '${{ inputs.s3-obj-filter}}'."
           }
 
