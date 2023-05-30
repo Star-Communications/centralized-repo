@@ -10,17 +10,11 @@ on:
         type: string
         required: true
 
-      root-folder-path:
-        description: "Name of the root folder containing all software files (eg. releases, exec, logs...)"
-        type: string
-        # not required cause we can get it by getting the executable path of the windows service
-        required: false
-        default: ""
-
-      project-name:
-        description: "Name of the project (eg. 'project_name')"
-        type: string
-        required: true
+      # not required cause we get it by getting the executable path of the windows service
+      #   project-folder-path:
+      #     description: "Name of the project (eg. 'project_name')"
+      #     type: string
+      #     required: true
 
       windows-service-name:
         description: "Name of the Windows service to deploy"
@@ -46,7 +40,8 @@ on:
         required: true
 
 env:
-  ROOT_FOLDER_PATH: "${{ inputs.root-folder-path }}"
+  # eg: C:/SC-TRACKER/INSTALLATION FILES/project_name/
+  PROJECT_FOLDER_PATH: ""
 
 jobs:
   deploy-ws-publish:
@@ -66,17 +61,17 @@ jobs:
       - name: Get executable path of windows service
         run: |
           $execPath=(Get-CimInstance -ClassName Win32_Service -Filter "Name='${{ inputs.windows-service-name }}'" | Select-Object -ExpandProperty PathName)
-          # (for example) execPath = "RootFolder/INSTALLATION FILES/project_name/publish/.exe"
-          $rootPath=($execPath | Split-Path -Parent | Split-Path -Parent | Split-Path -Parent | Split-Path -Parent)
+          # (for example) execPath = "C:/SC-TRACKER/INSTALLATION FILES/project_name/publish/.exe"
+          $projPath=($execPath | Split-Path -Parent | Split-Path -Parent)
           echo "Path of executable: $execPath"
-          echo "Path of root folder: $rootPath"
-          if ($rootPath) { echo "ROOT_FOLDER_PATH=$rootPath" >> $env:GITHUB_ENV }
+          echo "Path of root folder: $projPath"
+          if ($projPath) { echo "PROJECT_FOLDER_PATH=$projPath" >> $env:GITHUB_ENV }
           else { throw "Could not get Root Folder path" }
 
       # ********** Copy downloaded release to project folder **********
       - name: Move downloaded release to project folder
         run: |
-          $destinationPath="${{ env.ROOT_FOLDER_PATH }}/INSTALLATION FILES/${{ inputs.project-name }}/releases"
+          $destinationPath="${{ env.PROJECT_FOLDER_PATH }}/releases"
 
           # STEP 1: Create destination folder if it doesn't exist
           if (!(Test-Path -Path "$destinationPath")) {
@@ -97,17 +92,17 @@ jobs:
       # TODO: check system architecture (32 or 64 bits) and install the right version of the service
       # cmd: if ([System.Environment]::Is64BitOperatingSystem) { Write-Host "64-bit operating system" } else { Write-Host "32-bit operating system" }
       - name: Overwrite new release build folder to existing build folder
-        run: Copy-Item -Path "${{ env.ROOT_FOLDER_PATH }}/INSTALLATION FILES/${{ inputs.project-name }}/releases/${{ inputs.downloaded-release-folder }}/publish/*" -Destination "${{ env.ROOT_FOLDER_PATH }}/INSTALLATION FILES/${{ inputs.project-name }}/publish" -Recurse -Force
+        run: Copy-Item -Path "${{ env.PROJECT_FOLDER_PATH }}/releases/${{ inputs.downloaded-release-folder }}/publish/*" -Destination "${{ env.PROJECT_FOLDER_PATH }}/publish" -Recurse -Force
 
       - name: Overwrite env file (if it exists)
-        run: if (Test-Path "${{ env.ROOT_FOLDER_PATH }}/INSTALLATION FILES/${{ inputs.project-name }}/${{ inputs.env-file-name}}")
-          { Copy-Item -Path "${{ env.ROOT_FOLDER_PATH }}/INSTALLATION FILES/${{ inputs.project-name }}/${{ inputs.env-file-name}}" -Destination "${{ env.ROOT_FOLDER_PATH }}/INSTALLATION FILES/${{ inputs.project-name }}/publish/${{ inputs.env-file-name}}" -Force }
+        run: if (Test-Path "${{ env.PROJECT_FOLDER_PATH }}/${{ inputs.env-file-name}}")
+          { Copy-Item -Path "${{ env.PROJECT_FOLDER_PATH }}/${{ inputs.env-file-name}}" -Destination "${{ env.PROJECT_FOLDER_PATH }}/publish/${{ inputs.env-file-name}}" -Force }
 
       - name: Start windows service
         run: if ((Get-Service "${{ inputs.windows-service-name }}").Status -eq "Stopped") { Start-Service -Name "${{ inputs.windows-service-name }}" }
 
       - name: Clean up release folder (delete all releases except last 5)
-        run: Get-ChildItem -Path "${{ env.ROOT_FOLDER_PATH }}/INSTALLATION FILES/${{ inputs.project-name }}/releases" | Sort-Object -Property CreationTime -Descending | Select-Object -Skip 5 | Remove-Item -Recurse -Force
+        run: Get-ChildItem -Path "${{ env.PROJECT_FOLDER_PATH }}/releases" | Sort-Object -Property CreationTime -Descending | Select-Object -Skip 5 | Remove-Item -Recurse -Force
 
     #   - name: Curl to MonitorHub to confirm version update succeeded or failed
     #     # ensure this step is executed even if the previous step fails.
