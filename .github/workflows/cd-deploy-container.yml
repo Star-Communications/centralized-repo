@@ -72,11 +72,11 @@ jobs:
       #     run: curl -X POST https://api.scout-camp.io/backup
 
       - name: Stop running container (docker-compose down)
-        run: docker compose --file "${{ inputs.project-folder-path}}/docker files/${{ inputs.docker-compose-file-name }}" down
+        run: docker compose --file "${{ inputs.project-folder-path}}/docker-files/${{ inputs.docker-compose-file-name }}" down
         continue-on-error: true
 
       - name: Start new container (docker-compose up -force build)
-        run: docker compose --file "${{ inputs.project-folder-path}}/docker files/${{ inputs.docker-compose-file-name }}" up --build
+        run: docker compose --file "${{ inputs.project-folder-path}}/docker-files/${{ inputs.docker-compose-file-name }}" up --build
 
     #   - name: Clean up unused containers & images
     #     run: |
