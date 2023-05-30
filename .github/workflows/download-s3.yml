@@ -106,7 +106,7 @@ jobs:
         continue-on-error: true
         id: check-if-object-exists
         run: |
-          # STEP 1: Check if 'download-path' & create it & exit if it doesn't exist
+          # STEP 1: If 'download-path' does NOT exist, then create it & exit (no need to continue).
           if(!(Test-Path -Path "${{ inputs.download-path }}")) {
             New-Item -ItemType Directory -Force -Path "${{ inputs.download-path }}"
             exit 0

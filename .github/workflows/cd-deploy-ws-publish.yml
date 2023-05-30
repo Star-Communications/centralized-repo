@@ -68,7 +68,7 @@ jobs:
           if ($projPath) { echo "PROJECT_FOLDER_PATH=$projPath" >> $env:GITHUB_ENV }
           else { throw "Could not get Root Folder path" }
 
-      # ********** Copy downloaded release to project folder **********
+      # ********** Move downloaded release to project folder **********
       - name: Move downloaded release to project folder
         run: |
           $destinationPath="${{ env.PROJECT_FOLDER_PATH }}/releases"
