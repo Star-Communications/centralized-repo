@@ -56,10 +56,12 @@ jobs:
           # STEP 1: Create releases folder if it doesn't exist
           if (!(Test-Path -Path "${{ inputs.project-folder-path }}/releases")) {
               New-Item -ItemType Directory -Force -Path "${{ inputs.project-folder-path }}/releases"
+              echo "Release folder not found. Created new release folder."
           }
 
           # STEP 2: Move downloaded new release folder to project releases folder
           Move-Item -Path "${{ inputs.downloaded-release-path }}/${{ inputs.downloaded-release-folder }}" -Destination "${{ inputs.project-folder-path }}/releases/" -Force
+          echo "Moved downloaded release folder to project releases folder."
 
       # ********** Build new image & run new container **********
       #   - name: Curl backup endpoint (to service Api)
@@ -67,6 +69,7 @@ jobs:
 
       - name: Stop running container (docker-compose down)
         run: docker compose --file "${{ inputs.project-folder-path}}/docker-files/${{ inputs.docker-compose-file-name }}" down
+        # continue-on-error in case there is no running container
         continue-on-error: true
 
       - name: Overwrite old build/publish & docker files with new release files

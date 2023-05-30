@@ -109,6 +109,7 @@ jobs:
           # STEP 1: If 'download-path' does NOT exist, then create it & exit (no need to continue).
           if(!(Test-Path -Path "${{ inputs.download-path }}")) {
             New-Item -ItemType Directory -Force -Path "${{ inputs.download-path }}"
+            echo "Download path '${{ inputs.download-path }}' doesn't exist. Created it. Exiting..."
             exit 0
           }
 
@@ -131,6 +132,8 @@ jobs:
             throw "Object '$objName' already exists locally. Skipping download."
           }
 
+          echo "Object '$objName' doesn't exist locally."
+
       - name: Download object from S3 # (if object doesn't exists locally (as a directory or file))
         shell: pwsh
         if: steps.check-if-object-exists.outcome == 'success'
@@ -147,8 +150,11 @@ jobs:
           {
             # STEP 2: Unzip the downloaded object to a folder with same object name (use -Force to overwrite existing files)
             Expand-Archive -Path "$objPath" -DestinationPath "$objPath".replace(".zip", "") -Force
+            echo "Object '$objName' unzipped successfully."
+            
             # STEP 3: Remove the zip file
             Remove-Item "$objPath"
+            echo "Object '$objName' zip file removed successfully."
 
             # STEP 4: If unzipped dir contains only one dir (with same name), move child dir to parent dir (overwrite)
             # so instead of "unzippedDir/unzippedDir/my-files" will have "unzippedDir/my-files"
@@ -156,6 +162,8 @@ jobs:
             $childDir = (Get-ChildItem -Path "$objPath".replace(".zip", "") -Directory | Select-Object -First 1).Name
 
             if($childItemCount -eq 1 -and $childDir -eq $objName.replace(".zip", "")) {
+                echo "Object '$objName' contains only one child dir. Moving child dir to parent dir..."
+
                 $parentDirPath = "$objPath".replace(".zip", "")
                 # STEP 4.a: Rename parent dir
                 Rename-Item -Path "$parentDirPath" -NewName "$objName _old"
@@ -165,11 +173,14 @@ jobs:
 
                 # STEP 4.c: Delete old parent dir
                 Remove-Item -Path "$parentDirPath _old" -Force -Recurse
+
+                echo "Object '$objName' child dir moved to parent dir successfully."
             }
           }
           else {
             echo "Object '$objName' doesn't exist locally or is not a zip file. Skipping unzip."
           }
+
           # STEP 5: Remove ".zip" from the object name
           if ("${{ inputs.unzip-file }}" -eq "true") { $objName = "$objName".replace(".zip", "") }
 
@@ -180,3 +191,5 @@ jobs:
           else {
             echo "downloaded-name=$objName" >> $env:GITHUB_OUTPUT
           }
+
+          echo "downloaded-name= '$objName'"
