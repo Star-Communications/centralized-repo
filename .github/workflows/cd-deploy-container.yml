@@ -51,16 +51,15 @@ jobs:
 
       # ********** Move downloaded release to project folder **********
       - name: Move downloaded release to project folder
+        shell: pwsh
         run: |
-          $destinationPath="${{ inputs.project-folder-path }}/releases"
-
-          # STEP 1: Create destination folder if it doesn't exist
-          if (!(Test-Path -Path "$destinationPath")) {
-              New-Item -ItemType Directory -Force -Path "$destinationPath"
+          # STEP 1: Create releases folder if it doesn't exist
+          if (!(Test-Path -Path "${{ inputs.project-folder-path }}/releases")) {
+              New-Item -ItemType Directory -Force -Path "${{ inputs.project-folder-path }}/releases"
           }
 
-          # STEP 2: Move downloaded release folder to destination folder
-          Move-Item -Path "${{ inputs.downloaded-release-path }}/${{ inputs.downloaded-release-folder }}" -Destination "$destinationPath/" -Force
+          # STEP 2: Move downloaded new release folder to project releases folder
+          Move-Item -Path "${{ inputs.downloaded-release-path }}/${{ inputs.downloaded-release-folder }}" -Destination "${{ inputs.project-folder-path }}/releases/" -Force
 
       # ********** Build new image & run new container **********
       #   - name: Curl backup endpoint (to service Api)
@@ -69,6 +68,11 @@ jobs:
       - name: Stop running container (docker-compose down)
         run: docker compose --file "${{ inputs.project-folder-path}}/docker-files/${{ inputs.docker-compose-file-name }}" down
         continue-on-error: true
+
+      - name: Overwrite old build/publish & docker files with new release files
+        shell: pwsh
+        run: |
+          Copy-Item -Path "${{ inputs.project-folder-path }}/releases/${{ inputs.downloaded-release-folder }}/*" -Destination "${{ inputs.project-folder-path }}/" -Recurse -Force
 
       - name: Start new container (docker-compose up -force build)
         run: docker compose --file "${{ inputs.project-folder-path}}/docker-files/${{ inputs.docker-compose-file-name }}" up --build

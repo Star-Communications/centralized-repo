@@ -94,10 +94,10 @@ jobs:
 
           # STEP 4: set $ObjName as an env variable (check OS to use appropriate syntax)
           if ("${{ runner.os }}" -eq 'Linux') {
-              echo "obj-name=$ObjName" >> $GITHUB_OUTPUT
+            echo "obj-name=$ObjName" >> $GITHUB_OUTPUT
           }
           else {
-              echo "obj-name=$ObjName" >> $env:GITHUB_OUTPUT
+            echo "obj-name=$ObjName" >> $env:GITHUB_OUTPUT
           }
 
       # This step is unnecessary (as we move the file later on to the project folder)

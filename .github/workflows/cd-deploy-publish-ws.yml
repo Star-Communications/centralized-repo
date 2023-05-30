@@ -71,15 +71,13 @@ jobs:
       # ********** Move downloaded release to project folder **********
       - name: Move downloaded release to project folder
         run: |
-          $destinationPath="${{ env.PROJECT_FOLDER_PATH }}/releases"
-
           # STEP 1: Create destination folder if it doesn't exist
-          if (!(Test-Path -Path "$destinationPath")) {
-              New-Item -ItemType Directory -Force -Path "$destinationPath"
+          if (!(Test-Path -Path "${{ env.PROJECT_FOLDER_PATH }}/releases")) {
+              New-Item -ItemType Directory -Force -Path "${{ env.PROJECT_FOLDER_PATH }}/releases"
           }
 
           # STEP 2: Move downloaded release folder to destination folder
-          Move-Item -Path "${{ inputs.downloaded-release-path }}/${{ inputs.downloaded-release-folder }}" -Destination "$destinationPath/" -Force
+          Move-Item -Path "${{ inputs.downloaded-release-path }}/${{ inputs.downloaded-release-folder }}" -Destination "${{ env.PROJECT_FOLDER_PATH }}/releases/" -Force
 
       # ********** Update windows serivce **********
       #   - name: Curl backup endpoint (to service Api)
