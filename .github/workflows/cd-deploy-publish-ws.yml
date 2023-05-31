@@ -69,6 +69,9 @@ jobs:
           else { throw "Could not get Root Folder path" }
 
       # ********** Move downloaded release to project folder **********
+      - name: Delete docker-files folder from downloaded release
+        run: Remove-Item -Path "${{ inputs.downloaded-release-path }}/${{ inputs.downloaded-release-folder }}/docker-files" -Recurse -Force
+
       - name: Move downloaded release to project folder
         run: |
           # STEP 1: Create destination folder if it doesn't exist
