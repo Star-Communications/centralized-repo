@@ -18,8 +18,7 @@ on:
       target-version:
         description: "Version to deploy (if not of latest)"
         type: string
-        required: false
-        default: "latest"
+        required: true
 
       s3-bucket:
         description: "Name of the S3 bucket to download from"
@@ -44,9 +43,6 @@ env:
   # eg: C:/SC-TRACKER/INSTALLATION FILES/project_name/
   PROJECT_FOLDER_PATH: ""
 
-permissions:
-  id-token: write # This is required for OIDC requesting the JWT
-
 jobs:
   download-release:
     uses: ./.github/workflows/download-s3.yml # use reuable workflow in the same repo
@@ -63,7 +59,7 @@ jobs:
     # the job returns the following outputs:
     #   downloaded-name:
 
-  mw-log-outputs-job:
+  log-outputs-job:
     runs-on: ${{ inputs.runs-on }}
     needs: download-release
     steps:
