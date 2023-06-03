@@ -75,7 +75,7 @@ jobs:
           echo "S3 Objects with same File name: $existingObjs"
 
           # STEP 2: If any objects were found, throw error
-          if ($existingObjs) {
+          if ($existingObjs -or ($existingObjs -eq 'None')) {
             throw "File already exists in S3."
           }
 
