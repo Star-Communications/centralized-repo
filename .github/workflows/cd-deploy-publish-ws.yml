@@ -44,6 +44,9 @@ env:
   # eg: C:/SC-TRACKER/INSTALLATION FILES/project_name/
   PROJECT_FOLDER_PATH: ""
 
+permissions:
+  id-token: write # This is required for OIDC requesting the JWT
+
 jobs:
   download-release:
     uses: ./.github/workflows/download-s3.yml # use reuable workflow in the same repo
@@ -95,7 +98,7 @@ jobs:
 
       # ********** Move downloaded release to project folder **********
       - name: Delete docker-files folder from downloaded release
-        run: Remove-Item -Path "./downloads/s3/"${{ needs.download-release.outputs.downloaded-name }}"/docker-files" -Recurse -Force
+        run: Remove-Item -Path "./downloads/s3/${{ needs.download-release.outputs.downloaded-name }}/docker-files" -Recurse -Force
 
       - name: Move downloaded release to project folder
         run: |
@@ -105,7 +108,7 @@ jobs:
           }
 
           # STEP 2: Move downloaded release folder to destination folder
-          Move-Item -Path "./downloads/s3/"${{ needs.download-release.outputs.downloaded-name }}"" -Destination "${{ env.PROJECT_FOLDER_PATH }}/releases/" -Force
+          Move-Item -Path "./downloads/s3/${{ needs.download-release.outputs.downloaded-name }}" -Destination "${{ env.PROJECT_FOLDER_PATH }}/releases/" -Force
 
       # ********** Update windows serivce **********
       #   - name: Curl backup endpoint (to service Api)
@@ -118,7 +121,7 @@ jobs:
       # TODO: check system architecture (32 or 64 bits) and install the right version of the service
       # cmd: if ([System.Environment]::Is64BitOperatingSystem) { Write-Host "64-bit operating system" } else { Write-Host "32-bit operating system" }
       - name: Overwrite new release build folder to existing build folder
-        run: Copy-Item -Path "${{ env.PROJECT_FOLDER_PATH }}/releases/"${{ needs.download-release.outputs.downloaded-name }}"/publish/*" -Destination "${{ env.PROJECT_FOLDER_PATH }}/publish" -Recurse -Force
+        run: Copy-Item -Path "${{ env.PROJECT_FOLDER_PATH }}/releases/${{ needs.download-release.outputs.downloaded-name }}/publish/*" -Destination "${{ env.PROJECT_FOLDER_PATH }}/publish" -Recurse -Force
 
       - name: Overwrite env file (if it exists)
         run: if (Test-Path "${{ env.PROJECT_FOLDER_PATH }}/appsettings.json")
