@@ -59,19 +59,15 @@ jobs:
     # the job returns the following outputs:
     #   downloaded-name:
 
-  log-outputs-job:
-    runs-on: ${{ inputs.runs-on }}
-    needs: download-release
-    steps:
-      - name: Log outputs
-        run: |
-          echo "downloaded-name: ${{ needs.download-release.outputs.downloaded-name }}"
-
   deploy-ws-publish:
     needs: download-release
     runs-on: ${{ inputs.runs-on }}
 
     steps:
+      - name: Log outputs
+        run: |
+          echo "downloaded-name: ${{ needs.download-release.outputs.downloaded-name }}"
+
       - name: Log runner label(s) & fail if 'ubuntu-latest'
         shell: pwsh
         run: |
@@ -94,7 +90,11 @@ jobs:
 
       # ********** Move downloaded release to project folder **********
       - name: Delete docker-files folder from downloaded release
-        run: Remove-Item -Path "./downloads/s3/${{ needs.download-release.outputs.downloaded-name }}/docker-files" -Recurse -Force
+        run: |
+          # delete docker-files folder (if it exists)
+          if (Test-Path -Path "./downloads/s3/${{ needs.download-release.outputs.downloaded-name }}/docker-files") {
+            Remove-Item -Path "./downloads/s3/${{ needs.download-release.outputs.downloaded-name }}/docker-files" -Recurse -Force
+          }
 
       - name: Move downloaded release to project folder
         run: |
