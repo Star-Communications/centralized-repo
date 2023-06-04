@@ -1,5 +1,5 @@
 # Deploy Windows Service (publish)
-name: cd-deploy-publish-ws
+name: cd-deploy-ws
 
 on:
   workflow_call:
@@ -59,7 +59,7 @@ jobs:
     # the job returns the following outputs:
     #   downloaded-name:
 
-  deploy-publish-ws:
+  deploy-ws:
     needs: download-release
     runs-on: ${{ inputs.runs-on }}
 
