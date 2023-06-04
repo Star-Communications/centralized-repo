@@ -98,7 +98,7 @@ jobs:
 
           # STEP 3: Get path of root folder
           # (eg.) physicalPath = "C:/SC-TRACKER/INSTALLATION FILES/project_name/dist/index.html"
-          $projPath=($execPath | Split-Path -Parent | Split-Path -Parent)
+          $projPath=($physicalPath | Split-Path -Parent | Split-Path -Parent)
             
           echo "Physical path of '$siteName' website is: '$physicalPath'"
           echo "Path of root folder: $projPath"
@@ -117,7 +117,7 @@ jobs:
 
           # (eg.) physicalPath = "C:/SC-TRACKER/INSTALLATION FILES/project_name/publish/.exe"
           # (eg.) projPath = "C:/SC-TRACKER/INSTALLATION FILES/project_name"
-          $projPath=($execPath | Split-Path -Parent | Split-Path -Parent)
+          $projPath=($physicalPath | Split-Path -Parent | Split-Path -Parent)
             
           echo "Physical path of '$appName' application in '$siteName' website is: '$physicalPath'"
           echo "Path of root folder: '$projPath'"
