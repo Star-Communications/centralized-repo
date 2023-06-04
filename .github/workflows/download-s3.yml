@@ -81,7 +81,7 @@ jobs:
           $s3ObjFilter = "${{ inputs.s3-obj-filter }}".Trim()
 
           # STEP 2: Get S3 object order by last-modified reverse (& remove bucket subfolder (prefix) from object name)
-          $ObjName = (aws s3api list-objects-v2 --bucket "${{ inputs.s3-bucket }}" --prefix "${{ inputs.s3-prefix }}" --query "reverse(sort_by(Contents[?contains(Key, '$s3ObjFilter')], &LastModified))[0].Key" --output text).replace("${{ inputs.s3-prefix }}/", "")
+          $ObjName = (aws s3api list-objects-v2 --bucket "${{ inputs.s3-bucket }}" --prefix "${{ inputs.s3-prefix }}" --query "reverse(sort_by(Contents[?contains(Key, '$s3ObjFilter')], &LastModified))[0].Key" --output text)
           echo "Object name in S3: '$ObjName'"
 
           # STEP 3: throw an error if $ObjName has no value
@@ -89,7 +89,11 @@ jobs:
             throw "Object not found in S3. Invalid s3-obj-filter: '${{ inputs.s3-obj-filter}}'."
           }
 
-          # STEP 4: set $ObjName as an env variable (check OS to use appropriate syntax)
+          # STEP 4: remove prefix from object name
+          $ObjName = $ObjName.replace("${{ inputs.s3-prefix }}/", "")
+          echo "Object name after removing prefix: '$ObjName'"
+
+          # STEP 5: set $ObjName as an env variable (check OS to use appropriate syntax)
           if ("${{ runner.os }}" -eq 'Linux') {
             echo "obj-name=$ObjName" >> $GITHUB_OUTPUT
           }
