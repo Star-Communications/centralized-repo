@@ -153,7 +153,7 @@ jobs:
 
       - name: Overwrite build folder (dist)
         # run if 'iis-application-name' is not empty
-        if: inputs.iis-application-name != ''
+        if: inputs.iis-application-name == ''
         shell: pwsh
         run: Copy-Item -Path "${{ env.PROJECT_FOLDER_PATH }}/releases/${{ needs.download-release.outputs.downloaded-name }}/dist/*" -Destination "${{ env.PROJECT_FOLDER_PATH }}/dist" -Recurse -Force
 
