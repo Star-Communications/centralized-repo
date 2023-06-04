@@ -89,15 +89,21 @@ jobs:
         if: "'${{ inputs.iis-application-name }}' == ''"
         shell: pwsh
         run: |
+          # STEP 1: Import needed for 'Get-WebSite' cmdlet  
+          Import-Module -Name WebAdministration
+
+          # STEP 2: Get physical path of iis website
           $siteName = '${{ inputs.iis-website-name }}'
           $physicalPath = (Get-WebSite -Name $siteName).PhysicalPath
 
+          # STEP 3: Get path of root folder
           # (eg.) physicalPath = "C:/SC-TRACKER/INSTALLATION FILES/project_name/dist/index.html"
           $projPath=($execPath | Split-Path -Parent | Split-Path -Parent)
             
           echo "Physical path of '$siteName' website is: '$physicalPath'"
           echo "Path of root folder: $projPath"
 
+          # STEP 4: Set 'PROJECT_FOLDER_PATH' env variable
           if ($projPath) { echo "PROJECT_FOLDER_PATH=$projPath" >> $env:GITHUB_ENV }
           else { throw "Could not get Root Folder path" }
 
