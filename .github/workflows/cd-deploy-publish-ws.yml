@@ -1,5 +1,5 @@
-# CD - Deploy Windows Service (publish)
-name: cd-deploy-ws-publish
+# Deploy Windows Service (publish)
+name: cd-deploy-publish-ws
 
 on:
   workflow_call:
@@ -52,18 +52,19 @@ jobs:
       s3-prefix: ${{ inputs.s3-prefix }}
       # <condition> && <true-value> || <false-value>
       s3-obj-filter: ${{ contains(inputs.target-version, 'latest') && ' ' || inputs.target-version }}
-      download-path: "./downloads/s3" # download to a temporary path (cause project path is still unknown - will get it in the 'deploy-ws-publish' job)
+      download-path: "./downloads/s3" # download to a temporary path (cause project path is still unknown - will get it in the next job)
       unzip-file: true
     secrets:
       AWS_ROLE_TO_ASSUME: ${{ secrets.AWS_ROLE_TO_ASSUME }}
     # the job returns the following outputs:
     #   downloaded-name:
 
-  deploy-ws-publish:
+  deploy-publish-ws:
     needs: download-release
     runs-on: ${{ inputs.runs-on }}
 
     steps:
+      # ********** Log variables **********
       - name: Log runner label(s) & fail if 'ubuntu-latest'
         shell: pwsh
         run: |
@@ -81,10 +82,14 @@ jobs:
       - name: Get executable path of windows service
         run: |
           $execPath=(Get-CimInstance -ClassName Win32_Service -Filter "Name='${{ inputs.windows-service-name }}'" | Select-Object -ExpandProperty PathName)
-          # (for example) execPath = "C:/SC-TRACKER/INSTALLATION FILES/project_name/publish/.exe"
+
+          # (eg.) execPath = "C:/SC-TRACKER/INSTALLATION FILES/project_name/publish/.exe"
+          # (eg.) projPath = "C:/SC-TRACKER/INSTALLATION FILES/project_name"
           $projPath=($execPath | Split-Path -Parent | Split-Path -Parent)
-          echo "Path of executable: $execPath"
-          echo "Path of root folder: $projPath"
+
+          echo "Path of executable: '$execPath'"
+          echo "Path of root folder: '$projPath'"
+
           if ($projPath) { echo "PROJECT_FOLDER_PATH=$projPath" >> $env:GITHUB_ENV }
           else { throw "Could not get Root Folder path" }
 
@@ -116,10 +121,10 @@ jobs:
 
       # TODO: check system architecture (32 or 64 bits) and install the right version of the service
       # cmd: if ([System.Environment]::Is64BitOperatingSystem) { Write-Host "64-bit operating system" } else { Write-Host "32-bit operating system" }
-      - name: Overwrite new release build folder to existing build folder
+      - name: Overwrite build folder (publish)
         run: Copy-Item -Path "${{ env.PROJECT_FOLDER_PATH }}/releases/${{ needs.download-release.outputs.downloaded-name }}/publish/*" -Destination "${{ env.PROJECT_FOLDER_PATH }}/publish" -Recurse -Force
 
-      - name: Overwrite env file (if it exists)
+      - name: Overwrite appsettings file (if exists)
         run: if (Test-Path "${{ env.PROJECT_FOLDER_PATH }}/appsettings.json")
           { Copy-Item -Path "${{ env.PROJECT_FOLDER_PATH }}/appsettings.json" -Destination "${{ env.PROJECT_FOLDER_PATH }}/publish/appsettings.json" -Force }
 
