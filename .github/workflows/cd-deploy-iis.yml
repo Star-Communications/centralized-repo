@@ -86,7 +86,6 @@ jobs:
 
       # ********** Get physical path **********
       - name: Get physical path of iis website # this step is for SPAs
-        if: "'${{ inputs.iis-application-name }}' == ''"
         shell: pwsh
         run: |
           # STEP 1: Import needed for 'Get-WebSite' cmdlet  
@@ -94,34 +93,26 @@ jobs:
 
           # STEP 2: Get physical path of iis website
           $siteName = '${{ inputs.iis-website-name }}'
-          $physicalPath = (Get-WebSite -Name $siteName).PhysicalPath
+          $appName = '${{ inputs.iis-application-name }}'
+
+          if ($appName) { 
+            echo "Set physical path of '$appName' application in '$siteName' website"
+            $physicalPath = (Get-WebApplication -Site $siteName -Name $appName).PhysicalPath
+          }
+          else { 
+            echo "Set physical path of '$siteName' website"
+            $physicalPath = (Get-WebSite -Name $siteName).PhysicalPath 
+          }
 
           # STEP 3: Get path of root folder
-          # (eg.) physicalPath = "C:/SC-TRACKER/INSTALLATION FILES/project_name/dist/index.html"
+          # (eg.) physicalPath = "C:/SC-TRACKER/INSTALLATION FILES/project_name/publish/.exe-OR-index.html"
+          # (eg.) projPath = "C:/SC-TRACKER/INSTALLATION FILES/project_name"
           $projPath=($physicalPath | Split-Path -Parent | Split-Path -Parent)
             
           echo "Physical path of '$siteName' website is: '$physicalPath'"
           echo "Path of root folder: $projPath"
 
           # STEP 4: Set 'PROJECT_FOLDER_PATH' env variable
-          if ($projPath) { echo "PROJECT_FOLDER_PATH=$projPath" >> $env:GITHUB_ENV }
-          else { throw "Could not get Root Folder path" }
-
-      - name: Get physical path of iis website application # this step is for APIs
-        if: "'${{ inputs.iis-application-name }}' != ''"
-        shell: pwsh
-        run: |
-          $siteName = '${{ inputs.iis-website-name }}'
-          $appName = '${{ inputs.iis-application-name }}'
-          $physicalPath = (Get-WebApplication -Site $siteName -Name $appName).PhysicalPath
-
-          # (eg.) physicalPath = "C:/SC-TRACKER/INSTALLATION FILES/project_name/publish/.exe"
-          # (eg.) projPath = "C:/SC-TRACKER/INSTALLATION FILES/project_name"
-          $projPath=($physicalPath | Split-Path -Parent | Split-Path -Parent)
-            
-          echo "Physical path of '$appName' application in '$siteName' website is: '$physicalPath'"
-          echo "Path of root folder: '$projPath'"
-
           if ($projPath) { echo "PROJECT_FOLDER_PATH=$projPath" >> $env:GITHUB_ENV }
           else { throw "Could not get Root Folder path" }
 
@@ -150,7 +141,11 @@ jobs:
       # Self-hosted runners requires elevated privileges to install and start services - cmd (as admin) run: "config "NAME_OF_YOUR_SERVICE" obj= "NT AUTHORITY\SYSTEM" type= own"
       - name: Stop iis website # no need to check if it's already stopped (doesn't throw error)
         shell: pwsh
-        run: Stop-WebSite -Name "${{ inputs.iis-website-name }}"
+        run: |
+          # Import needed for 'Stop-WebSite' cmdlet  
+          Import-Module -Name WebAdministration
+
+          Stop-WebSite -Name "${{ inputs.iis-website-name }}"
 
       - name: Overwrite build folder (dist)
         if: "'${{ inputs.iis-application-name }}' == ''"
@@ -172,7 +167,11 @@ jobs:
 
       - name: Start iis website
         shell: pwsh
-        run: Start-WebSite -Name "${{ inputs.iis-website-name }}"
+        run: |
+          # Import needed for 'Start-WebSite' cmdlet  
+          Import-Module -Name WebAdministration
+
+          Start-WebSite -Name "${{ inputs.iis-website-name }}"
 
       - name: Clean up release folder (delete all releases except last 5)
         run: Get-ChildItem -Path "${{ env.PROJECT_FOLDER_PATH }}/releases" | Sort-Object -Property CreationTime -Descending | Select-Object -Skip 5 | Remove-Item -Recurse -Force
