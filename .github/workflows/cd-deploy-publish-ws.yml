@@ -64,10 +64,6 @@ jobs:
     runs-on: ${{ inputs.runs-on }}
 
     steps:
-      - name: Log outputs
-        run: |
-          echo "downloaded-name: ${{ needs.download-release.outputs.downloaded-name }}"
-
       - name: Log runner label(s) & fail if 'ubuntu-latest'
         shell: pwsh
         run: |
@@ -76,6 +72,10 @@ jobs:
             echo "This workflow is not intended to run on ubuntu-latest. Please use self-hosted runner label(s)."
             exit 1
           }
+
+      - name: Log 'download-release' step outputs
+        run: |
+          echo "downloaded-name: ${{ needs.download-release.outputs.downloaded-name }}"
 
       # ********** Get executable path of windows service **********
       - name: Get executable path of windows service

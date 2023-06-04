@@ -2,12 +2,33 @@ name: cd-deploy-container
 
 on:
   workflow_call:
+    secrets:
+      AWS_ROLE_TO_ASSUME:
+        description: "ARN of the AWS role to assume"
+        required: true
+
     inputs:
       # TODO: check if runner label(s) exist in the org/repo
       runs-on:
         description: "The type of runner(s) to use (comma separated)"
         type: string
         required: true
+
+      target-version:
+        description: "Version to deploy (if not of latest)"
+        type: string
+        required: true
+
+      s3-bucket:
+        description: "Name of the S3 bucket to download from"
+        type: string
+        required: true
+
+      s3-prefix:
+        description: "Name of the S3 bucket prefix (subfolder) to upload to"
+        type: string
+        required: false
+        default: ""
 
       project-folder-path:
         description: "Name of the project (eg. 'project_name')"
@@ -19,24 +40,27 @@ on:
         type: string
         required: true
 
-      # if path to downloaded release in "C:\actions-runner\_work\MyProj\downloads\my-proj\my-proj-v0.1.29-latest",
-      # then "downloaded-release-path" = "C:\actions-runner\_work\MyProj\downloads\my-proj"
-      # and "downloaded-release-folder" = "my-proj-v0.1.29-latest"
-      downloaded-release-path:
-        description: "Path in local machine of the downloaded release folder."
-        type: string
-        required: true
-
-      downloaded-release-folder:
-        description: "Name of the downloaded release folder."
-        type: string
-        required: true
-
-permissions:
-  id-token: write # This is required for OIDC requesting the JWT
+      # if path to downloaded release is "C:\actions-runner\_work\MyProj\downloads\s3\my-proj\my-proj-v0.1.29-latest",
+      # then "download-release.outputs.downloaded-name" = "my-proj-v0.1.29-latest"
 
 jobs:
+  download-release:
+    uses: ./.github/workflows/download-s3.yml
+    with:
+      runs-on: ${{ inputs.runs-on }}
+      s3-bucket: ${{ inputs.s3-bucket }}
+      s3-prefix: ${{ inputs.s3-prefix }}
+      # <condition> && <true-value> || <false-value>
+      s3-obj-filter: ${{ contains(inputs.target-version, 'latest') && ' ' || inputs.target-version }}
+      download-path: "${{ inputs.project-folder-path }}/releases"
+      unzip-file: true
+    secrets:
+      AWS_ROLE_TO_ASSUME: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+    # the job returns the following outputs:
+    #   downloaded-name:
+
   deploy-container:
+    needs: download-release
     runs-on: ${{ inputs.runs-on }}
 
     steps:
@@ -49,19 +73,9 @@ jobs:
             exit 1
           }
 
-      # ********** Move downloaded release to project folder **********
-      - name: Move downloaded release to project folder
-        shell: pwsh
+      - name: Log 'download-release' job output
         run: |
-          # STEP 1: Create releases folder if it doesn't exist
-          if (!(Test-Path -Path "${{ inputs.project-folder-path }}/releases")) {
-              New-Item -ItemType Directory -Force -Path "${{ inputs.project-folder-path }}/releases"
-              echo "Release folder not found. Created new release folder."
-          }
-
-          # STEP 2: Move downloaded new release folder to project releases folder
-          Move-Item -Path "${{ inputs.downloaded-release-path }}/${{ inputs.downloaded-release-folder }}" -Destination "${{ inputs.project-folder-path }}/releases/" -Force
-          echo "Moved downloaded release folder to project releases folder."
+          echo "downloaded-name: ${{ needs.download-release.outputs.downloaded-name }}"
 
       # ********** Build new image & run new container **********
       #   - name: Curl backup endpoint (to service Api)
@@ -75,7 +89,7 @@ jobs:
       - name: Overwrite old build/publish & docker files with new release files
         shell: pwsh
         run: |
-          Copy-Item -Path "${{ inputs.project-folder-path }}/releases/${{ inputs.downloaded-release-folder }}/*" -Destination "${{ inputs.project-folder-path }}/" -Recurse -Force
+          Copy-Item -Path "${{ inputs.project-folder-path }}/releases/${{ needs.download-release.outputs.downloaded-name }}/*" -Destination "${{ inputs.project-folder-path }}/" -Recurse -Force
 
       - name: Start new container (docker-compose up -force build)
         run: docker compose --file "${{ inputs.project-folder-path}}/docker-files/${{ inputs.docker-compose-file-name }}" up --build
