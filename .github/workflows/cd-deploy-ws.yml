@@ -108,8 +108,10 @@ jobs:
               New-Item -ItemType Directory -Force -Path "${{ env.PROJECT_FOLDER_PATH }}/releases"
           }
 
-          # STEP 2: Move downloaded release folder to destination folder
-          Move-Item -Path "./downloads/s3/${{ needs.download-release.outputs.downloaded-name }}" -Destination "${{ env.PROJECT_FOLDER_PATH }}/releases/" -Force
+          # STEP 2: Move downloaded release folder to destination folder (if not already there)
+          if (!(Test-Path -Path "${{ env.PROJECT_FOLDER_PATH }}/releases/${{ needs.download-release.outputs.downloaded-name }}")) {
+              Move-Item -Path "./downloads/s3/${{ needs.download-release.outputs.downloaded-name }}" -Destination "${{ env.PROJECT_FOLDER_PATH }}/releases/" -Force
+          }
 
       # ********** Update windows serivce **********
       #   - name: Curl backup endpoint (to service Api)
