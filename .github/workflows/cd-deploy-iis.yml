@@ -89,7 +89,7 @@ jobs:
         shell: pwsh
         run: |
           # STEP 1: Import needed for 'Get-WebSite' cmdlet  
-          Import-Module -Name WebAdministration -SkipEditionCheck
+          Import-Module -Name WebAdministration
 
           # STEP 2: Get physical path of iis website
           $siteName = '${{ inputs.iis-website-name }}'
@@ -145,7 +145,7 @@ jobs:
         shell: pwsh
         run: |
           # Import needed for 'Stop-WebSite' cmdlet  
-          Import-Module -Name WebAdministration -SkipEditionCheck
+          Import-Module -Name WebAdministration
 
           Stop-WebSite -Name "${{ inputs.iis-website-name }}"
 
@@ -172,7 +172,7 @@ jobs:
         shell: pwsh
         run: |
           # Import needed for 'Start-WebSite' cmdlet  
-          Import-Module -Name WebAdministration -SkipEditionCheck
+          Import-Module -Name WebAdministration
 
           Start-WebSite -Name "${{ inputs.iis-website-name }}"
 
