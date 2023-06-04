@@ -86,10 +86,10 @@ jobs:
 
       # ********** Get physical path **********
       - name: Get physical path of iis website # this step is for SPAs
-        if: ${{ inputs.iis-application-name }} == ''
+        if: "'${{ inputs.iis-application-name }}' == ''"
         shell: pwsh
         run: |
-          $siteName = ${{ inputs.iis-website-name }}
+          $siteName = '${{ inputs.iis-website-name }}'
           $physicalPath = (Get-WebSite -Name $siteName).PhysicalPath
 
           # (eg.) physicalPath = "C:/SC-TRACKER/INSTALLATION FILES/project_name/dist/index.html"
@@ -102,11 +102,11 @@ jobs:
           else { throw "Could not get Root Folder path" }
 
       - name: Get physical path of iis website application # this step is for APIs
-        if: ${{ inputs.iis-application-name }} != ''
+        if: "'${{ inputs.iis-application-name }}' != ''"
         shell: pwsh
         run: |
-          $siteName = ${{ inputs.iis-website-name }}
-          $appName = ${{ inputs.iis-application-name }}}
+          $siteName = '${{ inputs.iis-website-name }}'
+          $appName = '${{ inputs.iis-application-name }}'
           $physicalPath = (Get-WebApplication -Site $siteName -Name $appName).PhysicalPath
 
           # (eg.) physicalPath = "C:/SC-TRACKER/INSTALLATION FILES/project_name/publish/.exe"
@@ -147,19 +147,19 @@ jobs:
         run: Stop-WebSite -Name "${{ inputs.iis-website-name }}"
 
       - name: Overwrite build folder (dist)
-        if: ${{ inputs.iis-application-name }} == ''
+        if: "'${{ inputs.iis-application-name }}' == ''"
         shell: pwsh
         run: Copy-Item -Path "${{ env.PROJECT_FOLDER_PATH }}/releases/${{ needs.download-release.outputs.downloaded-name }}/dist/*" -Destination "${{ env.PROJECT_FOLDER_PATH }}/dist" -Recurse -Force
 
       # TODO: check system architecture (32 or 64 bits) and install the right version of the service
       # cmd: if ([System.Environment]::Is64BitOperatingSystem) { Write-Host "64-bit operating system" } else { Write-Host "32-bit operating system" }
       - name: Overwrite build folder (publish)
-        if: ${{ inputs.iis-application-name }} != ''
+        if: "'${{ inputs.iis-application-name }}' != ''"
         shell: pwsh
         run: Copy-Item -Path "${{ env.PROJECT_FOLDER_PATH }}/releases/${{ needs.download-release.outputs.downloaded-name }}/publish/*" -Destination "${{ env.PROJECT_FOLDER_PATH }}/publish" -Recurse -Force
 
       - name: Overwrite appsettings file (if exists)
-        if: ${{ inputs.iis-application-name }} != ''
+        if: "'${{ inputs.iis-application-name }}' != ''"
         shell: pwsh
         run: if (Test-Path "${{ env.PROJECT_FOLDER_PATH }}/appsettings.json")
           { Copy-Item -Path "${{ env.PROJECT_FOLDER_PATH }}/appsettings.json" -Destination "${{ env.PROJECT_FOLDER_PATH }}/publish/appsettings.json" -Force }
