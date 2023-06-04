@@ -153,19 +153,19 @@ jobs:
 
       - name: Overwrite build folder (dist)
         # run if 'iis-application-name' is not empty
-        if: inputs.iis-application-name == ''
+        if: ${{ inputs.iis-application-name }} == ''
         shell: pwsh
         run: Copy-Item -Path "${{ env.PROJECT_FOLDER_PATH }}/releases/${{ needs.download-release.outputs.downloaded-name }}/dist/*" -Destination "${{ env.PROJECT_FOLDER_PATH }}/dist" -Recurse -Force
 
       # TODO: check system architecture (32 or 64 bits) and install the right version of the service
       # cmd: if ([System.Environment]::Is64BitOperatingSystem) { Write-Host "64-bit operating system" } else { Write-Host "32-bit operating system" }
       - name: Overwrite build folder (publish)
-        if: inputs.iis-application-name != ''
+        if: ${{ inputs.iis-application-name }} != ''
         shell: pwsh
         run: Copy-Item -Path "${{ env.PROJECT_FOLDER_PATH }}/releases/${{ needs.download-release.outputs.downloaded-name }}/publish/*" -Destination "${{ env.PROJECT_FOLDER_PATH }}/publish" -Recurse -Force
 
       - name: Overwrite appsettings file (if exists)
-        if: inputs.iis-application-name != ''
+        if: ${{ inputs.iis-application-name }} != ''
         shell: pwsh
         run: if (Test-Path "${{ env.PROJECT_FOLDER_PATH }}/appsettings.json")
           { Copy-Item -Path "${{ env.PROJECT_FOLDER_PATH }}/appsettings.json" -Destination "${{ env.PROJECT_FOLDER_PATH }}/publish/appsettings.json" -Force }
