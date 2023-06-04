@@ -105,9 +105,9 @@ jobs:
           }
 
           # STEP 3: Get path of root folder
-          # (eg.) physicalPath = "C:/SC-TRACKER/INSTALLATION FILES/project_name/publish/.exe-OR-index.html"
+          # (eg.) physicalPath = "C:/SC-TRACKER/INSTALLATION FILES/project_name/publishORdist/"
           # (eg.) projPath = "C:/SC-TRACKER/INSTALLATION FILES/project_name"
-          $projPath=($physicalPath | Split-Path -Parent | Split-Path -Parent)
+          $projPath=($physicalPath | Split-Path -Parent )
             
           echo "Physical path of '$siteName' website is: '$physicalPath'"
           echo "Path of root folder: $projPath"
