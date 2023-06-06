@@ -1,0 +1,31 @@
+version: "3.9"
+
+networks:
+  my-network:
+    external: true
+
+services:
+  SQL-EXPRESS:
+    image: mcr.microsoft.com/mssql/server:2019-latest
+    container_name: SQL-EXPRESS
+    restart: unless-stopped
+    volumes:
+      # what is this for??
+      - SQL_volume:/vol
+      # persist the data in the host machine
+      - ./MSSQL-Express/data:/var/opt/mssql/data
+      # persist the logs in the host machine
+      - ./MSSQL-Express/log:/var/opt/mssql/log
+      # secrets store sensitive configuration (like passwords, certificates & encryption keys)
+      - ./MSSQL-Express/secrets:/var/opt/mssql/secrets
+      # bind Tracker-Root-Folder to store the DB backup files there
+      # relative path assuming docker-compose file is in "SC-TRACKER/INSTALLATION FILES/database/docker-compose.yml"
+      - ../../../../SC-TRACKER:/SC-TRACKER
+    ports:
+      - "1433:1433"
+    networks:
+      - my-network
+    environment:
+      - ACCEPT_EULA=Y # Accept the end user license agreement
+      - MSSQL_SA_PASSWORD=SCTracker@123 # Specify the SA password
+      - MSSQL_PID=Express # Specify the SQL Server edition to be express edition

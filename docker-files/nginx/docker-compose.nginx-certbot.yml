@@ -1,0 +1,44 @@
+version: "3.9"
+
+networks:
+  # create a new network
+  my-network:
+    name: my-network # create or join existing network
+    driver: bridge
+
+services:
+  nginx:
+    image: nginx:latest
+    container_name: nginx
+    restart: always
+    # networks:
+    #   - my-network
+    volumes:
+      - ./nginx/public_html:/public_html
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
+      - ./nginx/dhparam:/etc/nginx/dhparam
+      - ./certbot/conf/:/etc/nginx/ssl/
+      - ./certbot/data:/usr/share/nginx/html/letsencrypt
+    ports:
+      - 80:80
+      - 443:443
+    # below: make nginx reload its configuration (& newly obtained certificates) every 6h in the background & launches nginx in the foreground.
+    command: '/bin/sh -c ''while :; do sleep 6h & wait $${!}; nginx -s reload; done & nginx -g "daemon off;"'''
+    # stdin_open: true # docker run -i
+    # tty: true        # docker run -t
+
+  certbot:
+    image: certbot/certbot:latest
+    container_name: certbot
+    restart: always
+    volumes:
+      - ./certbot/conf/:/etc/letsencrypt
+      - ./certbot/logs/:/var/log/letsencrypt
+      - ./certbot/data:/usr/share/nginx/html/letsencrypt
+    # if "command" & "entrypoint" are both provided, docker will only run "entrypoint" and skip "command"
+    # exec into container and run "command" manually to obtain certificates for your domain(s)
+    command: certbot certonly --webroot --webroot-path=/usr/share/nginx/html/letsencrypt --email my-email@email.com --agree-tos --no-eff-email -d my-website1.com,my-website2.com
+    # below: check if your certificate is up for renewal every 12 hours (as recommended by Let’s Encrypt).
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
+    # stdin_open: true # docker run -i
+    # tty: true        # docker run -t
