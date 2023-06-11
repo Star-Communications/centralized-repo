@@ -37,9 +37,11 @@ jobs:
         shell: pwsh # use powershell as default shell for all steps
 
     steps:
-      - name: Log runner label(s)
+      - name: Log inputs
         run: |
-          echo "runs-on: ${{ inputs.runs-on || 'ubuntu-latest' }}"
+          echo "runs-on: ${{ inputs.runs-on }}"
+          echo "branch-name: ${{ inputs.branch-name }}"
+          echo "additional-branch-names: ${{ inputs.additional-branch-names }}"
 
       # concatenate additional branch names to convention branch names defined below ('dependabot' & 'bump' are used by dependabot)
       # TODO: add check to validate that additional branch names are not already part of convention branch names & are in correct format
