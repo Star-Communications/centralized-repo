@@ -45,6 +45,18 @@ on:
       # then "download-release.outputs.downloaded-name" = "my-proj-v0.1.29-latest"
 
 jobs:
+  log-inputs:
+    runs-on: ${{ inputs.runs-on }}
+    steps:
+      - name: Log inputs
+        run: |
+          echo "runs-on: ${{ inputs.runs-on }}"
+          echo "target-version: ${{ inputs.target-version }}"
+          echo "s3-bucket: ${{ inputs.s3-bucket }}"
+          echo "s3-prefix: ${{ inputs.s3-prefix }}"
+          echo "project-folder-path: ${{ inputs.project-folder-path }}"
+          echo "docker-compose-file-name: ${{ inputs.docker-compose-file-name }}"
+
   download-release:
     uses: ./.github/workflows/download-s3.yml
     with:
