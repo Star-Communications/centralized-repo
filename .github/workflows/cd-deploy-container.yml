@@ -92,7 +92,7 @@ jobs:
 
       - name: Overwrite old build/publish & docker files with new release files
         run: |
-          Copy-Item -Path "${{ inputs.project-folder-path }}/releases/${{ needs.download-release.outputs.downloaded-name }}/*" -Destination "${{ inputs.project-folder-path }}/" -Recurse -Force
+          Copy-Item -Path "${{ inputs.project-folder-path }}/releases/${{ needs.download-release.outputs.downloaded-name }}/*" -Destination "${{ inputs.project-folder-path }}/" -r -Force
 
       - name: Start new container (docker-compose up -force build)
         run: docker compose --file "${{ inputs.project-folder-path}}/docker-files/${{ inputs.docker-compose-file-name }}" up --build -d

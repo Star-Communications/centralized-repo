@@ -123,7 +123,7 @@ jobs:
         run: |
           # delete docker-files folder (if it exists)
           if (Test-Path -Path "./downloads/s3/${{ needs.download-release.outputs.downloaded-name }}/docker-files") {
-            Remove-Item -Path "./downloads/s3/${{ needs.download-release.outputs.downloaded-name }}/docker-files" -Recurse -Force
+            Remove-Item -Path "./downloads/s3/${{ needs.download-release.outputs.downloaded-name }}/docker-files" -r -Force
           }
 
       - name: Move downloaded release to project folder
@@ -155,15 +155,13 @@ jobs:
       - name: Overwrite build folder (dist)
         # run if 'iis-application-name' is not empty
         if: inputs.iis-application-name == ''
-        shell: pwsh
-        run: Copy-Item -Path "${{ env.PROJECT_FOLDER_PATH }}/releases/${{ needs.download-release.outputs.downloaded-name }}/dist/*" -Destination "${{ env.PROJECT_FOLDER_PATH }}/dist" -Recurse -Force
+        run: Copy-Item -Path "${{ env.PROJECT_FOLDER_PATH }}/releases/${{ needs.download-release.outputs.downloaded-name }}/dist/*" -Destination "${{ env.PROJECT_FOLDER_PATH }}/dist" -r -Force
 
       # TODO: check system architecture (32 or 64 bits) and install the right version of the service
       # cmd: if ([System.Environment]::Is64BitOperatingSystem) { Write-Host "64-bit operating system" } else { Write-Host "32-bit operating system" }
       - name: Overwrite build folder (publish)
         if: inputs.iis-application-name != ''
-        shell: pwsh
-        run: Copy-Item -Path "${{ env.PROJECT_FOLDER_PATH }}/releases/${{ needs.download-release.outputs.downloaded-name }}/publish/*" -Destination "${{ env.PROJECT_FOLDER_PATH }}/publish" -Recurse -Force
+        run: Copy-Item -Path "${{ env.PROJECT_FOLDER_PATH }}/releases/${{ needs.download-release.outputs.downloaded-name }}/publish/*" -Destination "${{ env.PROJECT_FOLDER_PATH }}/publish" -r -Force
 
       - name: Overwrite appsettings file (if exists)
         if: inputs.iis-application-name != ''
@@ -178,7 +176,7 @@ jobs:
           Start-WebSite -Name "${{ inputs.iis-website-name }}"
 
       - name: Clean up release folder (delete all releases except last 5)
-        run: Get-ChildItem -Path "${{ env.PROJECT_FOLDER_PATH }}/releases" | Sort-Object -Property CreationTime -Descending | Select-Object -Skip 5 | Remove-Item -Recurse -Force
+        run: Get-ChildItem -Path "${{ env.PROJECT_FOLDER_PATH }}/releases" | Sort-Object -Property CreationTime -Descending | Select-Object -Skip 5 | Remove-Item -r -Force
 
     #   - name: Curl to MonitorHub to confirm version update succeeded or failed
     #     # ensure this step is executed even if the previous step fails.

@@ -178,7 +178,7 @@ jobs:
                 Move-Item -Path "$parentDirPath _old/$childDir" -Destination (Split-Path -Path "$parentDirPath" -Parent) -Force
 
                 # STEP 4.c: Delete old parent dir
-                Remove-Item -Path "$parentDirPath _old" -Force -Recurse
+                Remove-Item -Path "$parentDirPath _old" -Force -r
 
                 echo "Object '$objName' child dir moved to parent dir successfully."
             }
