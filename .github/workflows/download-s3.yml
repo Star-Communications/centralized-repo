@@ -101,34 +101,38 @@ jobs:
             echo "obj-name=$ObjName" >> $env:GITHUB_OUTPUT
           }
 
+      - name: Check & create 'download-path' (if it doesn't exist)
+        run: |
+          # STEP 1: If 'download-path' does NOT exist, then create it & exit (no need to continue).
+          if(!(Test-Path -Path "${{ inputs.download-path }}")) {
+              New-Item -ItemType Directory -Force -Path "${{ inputs.download-path }}"
+              echo "Download path '${{ inputs.download-path }}' doesn't exist. Created it."
+              exit 0
+          }
+
+          echo "Download path '${{ inputs.download-path }}' exists."
+
       # This step is unnecessary (as we move the file later on to the project folder)
       - name: Check if S3 object already exists locally # (as a directory or file)
         shell: pwsh
         continue-on-error: true
         id: check-if-object-exists
         run: |
-          # STEP 1: If 'download-path' does NOT exist, then create it & exit (no need to continue).
-          if(!(Test-Path -Path "${{ inputs.download-path }}")) {
-            New-Item -ItemType Directory -Force -Path "${{ inputs.download-path }}"
-            echo "Download path '${{ inputs.download-path }}' doesn't exist. Created it. Exiting..."
-            exit 0
-          }
-
-          # STEP 2: Get all directories in the 'download-path' (as array) (only if 'unzip-file'=true, cause then unzipped S3 object could be a directory)
+          # STEP 1: Get all directories in the 'download-path' (as array) (only if 'unzip-file'=true, cause then unzipped S3 object could be a directory)
           if("${{ inputs.unzip-file }}" -eq "true") {
             $dirs = @(Get-ChildItem -Path "${{ inputs.download-path }}/" -Directory)
           }
 
-          # STEP 3: Get all files (to get zipped files) in the 'download-path' (as array)
+          # STEP 2: Get all files (to get zipped files) in the 'download-path' (as array)
           $files = @(Get-ChildItem -Path "${{ inputs.download-path }}/" -File)
 
-          # STEP 4: Concatenate the arrays & filter result by object name
+          # STEP 3: Concatenate the arrays & filter result by object name
           $objName = "${{ steps.get-s3-object-name.outputs.obj-name }}".replace('.zip', '')
 
           # filtering with or without .zip ext, in case the object got unzipped after download.
           $filtered = $dirs + $files | Where-Object { $_.Name -eq "$objName" -or $_.Name -eq "$objName.zip" }
 
-          # STEP 5: throw an error if $filtered has a value
+          # STEP 4: throw an error if $filtered has a value
           if ($filtered) {
             throw "Object '$objName' already exists locally. Skipping download."
           }
