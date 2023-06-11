@@ -1,18 +1,21 @@
 version: "3.9"
 
 networks:
-  # create a new network
-  my-network:
-    name: my-network # create or join existing network
-    driver: bridge
+  # # network 'name' must be specified here & used in both services below !!!
+  # # otherwise docker will create 'nginx_MY-NETWORK-NAME' or 'nginx_default' networks
+  # MY-NETWORK-NAME: # create or join existing network (with same name)
+  #   name: MY-NETWORK-NAME
+  #   driver: bridge
+  MY-NETWORK-NAME:
+    external: true
 
 services:
   nginx:
     image: nginx:latest
     container_name: nginx
-    restart: always
-    # networks:
-    #   - my-network
+    restart: unless-stopped
+    networks:
+      - MY-NETWORK-NAME
     volumes:
       - ./nginx/public_html:/public_html
       - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
@@ -30,15 +33,30 @@ services:
   certbot:
     image: certbot/certbot:latest
     container_name: certbot
-    restart: always
+    restart: unless-stopped
+    networks:
+      - MY-NETWORK-NAME
     volumes:
       - ./certbot/conf/:/etc/letsencrypt
       - ./certbot/logs/:/var/log/letsencrypt
       - ./certbot/data:/usr/share/nginx/html/letsencrypt
     # if "command" & "entrypoint" are both provided, docker will only run "entrypoint" and skip "command"
     # exec into container and run "command" manually to obtain certificates for your domain(s)
-    command: certbot certonly --webroot --webroot-path=/usr/share/nginx/html/letsencrypt --email my-email@email.com --agree-tos --no-eff-email -d my-website1.com,my-website2.com
+    command: certbot certonly --webroot --webroot-path=/usr/share/nginx/html/letsencrypt --email my-email@email.com --agree-tos --no-eff-email -d MY-WEBSITE-1.COM,MY-WEBSITE-2.COM
     # below: check if your certificate is up for renewal every 12 hours (as recommended by Let’s Encrypt).
     entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
     # stdin_open: true # docker run -i
     # tty: true        # docker run -t
+#
+# INSTRUCTIONS:
+# 1) on host machine create directories 'WEBSERVER/nginx/'
+# 2) add this 'docker-compose' file to 'WEBSERVER/'
+#   a) rename 'MY-NETWORK-NAME' to your desired network name !!!
+# 3) add your own 'default.conf' (nginx) to 'WEBSERVER/nginx/'
+# 4) create docker network (if it doesn't exist yet): 'docker network create MY-NETWORK-NAME'
+# 5) start containers
+#   a) cd into 'WEBSERVER/'
+#   b) run 'docker compose --file ./docker-compose.nginx-certbot.yml up --build'
+
+# EXTRA NOTE:
+# - whenever you update your 'default.conf' (nginx) file, you need to restart the nginx container

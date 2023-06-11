@@ -1,7 +1,7 @@
 version: "3.9"
 
 networks:
-  my-network:
+  MY-NETWORK-NAME:
     external: true
 
 services:
@@ -24,7 +24,7 @@ services:
     ports:
       - "1433:1433"
     networks:
-      - my-network
+      - MY-NETWORK-NAME
     environment:
       - ACCEPT_EULA=Y # Accept the end user license agreement
       - MSSQL_SA_PASSWORD=SCTracker@123 # Specify the SA password
