@@ -54,6 +54,7 @@ jobs:
     runs-on: ${{ inputs.runs-on }}
     steps:
       - name: Log inputs & fail if runs-on='ubuntu-latest'
+        shell: pwsh
         run: |
           echo "runs-on: ${{ inputs.runs-on }}"
           echo "target-version: ${{ inputs.target-version }}"
