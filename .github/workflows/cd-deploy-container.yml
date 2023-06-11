@@ -31,7 +31,8 @@ on:
         default: ""
 
       project-folder-path:
-        description: "Name of the project (eg. 'project_name')"
+        # eg: (C: OR /home/ubuntu)/SC-TRACKER/INSTALLATION FILES/tracker-mw
+        description: "Path to the project folder (where the 'docker-files' folder is)"
         type: string
         required: true
 
@@ -81,7 +82,7 @@ jobs:
       #   - name: Curl backup endpoint (to service Api)
       #     run: curl -X POST https://api.scout-camp.io/backup
 
-      - name: Stop running container (docker-compose down)
+      - name: Stop existing container(s)
         run: docker compose --file "${{ inputs.project-folder-path}}/docker-files/${{ inputs.docker-compose-file-name }}" down
         # continue-on-error in case there is no running container
         continue-on-error: true
@@ -90,9 +91,6 @@ jobs:
         shell: pwsh
         run: |
           Copy-Item -Path "${{ inputs.project-folder-path }}/releases/${{ needs.download-release.outputs.downloaded-name }}/*" -Destination "${{ inputs.project-folder-path }}/" -Recurse -Force
-
-      - name: Stop existing container(s)
-        run: docker compose --file "${{ inputs.project-folder-path}}/docker-files/${{ inputs.docker-compose-file-name }}" down
       
       - name: Start new container (docker-compose up -force build)
         run: docker compose --file "${{ inputs.project-folder-path}}/docker-files/${{ inputs.docker-compose-file-name }}" up --build -d
