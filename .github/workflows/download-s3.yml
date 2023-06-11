@@ -103,12 +103,7 @@ jobs:
           echo "Object name after removing prefix: '$ObjName'"
 
           # STEP 5: set $ObjName as an env variable (check OS to use appropriate syntax)
-          if ("${{ runner.os }}" -eq 'Linux') {
-            echo "obj-name=$ObjName" >> $GITHUB_OUTPUT
-          }
-          else {
-            echo "obj-name=$ObjName" >> $env:GITHUB_OUTPUT
-          }
+          echo "obj-name=$ObjName" >> $env:GITHUB_OUTPUT
 
       - name: Check & create 'download-path' (if it doesn't exist)
         run: |
@@ -197,11 +192,6 @@ jobs:
           if ("${{ inputs.unzip-file }}" -eq "true") { $objName = "$objName".replace(".zip", "") }
 
           # STEP 6: Set $objName as an env variable (check OS to use appropriate syntax)
-          if ("${{ runner.os }}" -eq 'Linux') {
-            echo "downloaded-name=$objName" >> $GITHUB_OUTPUT
-          }
-          else {
-            echo "downloaded-name=$objName" >> $env:GITHUB_OUTPUT
-          }
+          echo "downloaded-name=$objName" >> $env:GITHUB_OUTPUT
 
           echo "downloaded-name= '$objName'"
