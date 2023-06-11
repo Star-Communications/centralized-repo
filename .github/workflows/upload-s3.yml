@@ -42,6 +42,10 @@ jobs:
   upload-to-s3:
     runs-on: ${{ inputs.runs-on || 'ubuntu-latest' }}
 
+    defaults:
+      run:
+        shell: pwsh # use powershell as default shell for all steps
+
     steps:
       - name: Log runner label(s)
         run: |
@@ -67,7 +71,6 @@ jobs:
 
       # NOT NEEDED?? As release-drafter step creates a new version even if no new changes are found.
       - name: Check if file already exists in S3
-        shell: pwsh
         run: |
           # STEP 1: Get S3 objects that start with same artifact-name
           echo "Artifact Name: ${{ inputs.artifact-name }}"
@@ -83,5 +86,4 @@ jobs:
         run: aws s3 cp "${{ env.DOWNLOADS_FOLDER_PATH }}/${{ inputs.artifact-name }}" "s3://${{ inputs.s3-bucket-name }}/${{ inputs.s3-prefix }}/${{ inputs.artifact-name }}"
 
       - name: Delete downloaded artifact file
-        shell: pwsh
         run: Remove-Item -Path "${{ env.DOWNLOADS_FOLDER_PATH }}/${{ inputs.artifact-name }}" -Force

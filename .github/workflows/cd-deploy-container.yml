@@ -64,9 +64,12 @@ jobs:
     needs: download-release
     runs-on: ${{ inputs.runs-on }}
 
+    defaults:
+      run:
+        shell: pwsh # use powershell as default shell for all steps
+
     steps:
       - name: Log runner label(s) & fail if 'ubuntu-latest'
-        shell: pwsh
         run: |
           echo "runs-on: ${{ inputs.runs-on }}"
           if ("${{ inputs.runs-on }}" -eq 'ubuntu-latest') {
@@ -88,7 +91,6 @@ jobs:
         continue-on-error: true
 
       - name: Overwrite old build/publish & docker files with new release files
-        shell: pwsh
         run: |
           Copy-Item -Path "${{ inputs.project-folder-path }}/releases/${{ needs.download-release.outputs.downloaded-name }}/*" -Destination "${{ inputs.project-folder-path }}/" -Recurse -Force
 

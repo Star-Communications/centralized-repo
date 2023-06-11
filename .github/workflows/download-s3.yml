@@ -51,13 +51,16 @@ jobs:
   download-from-s3:
     runs-on: ${{ inputs.runs-on }}
 
+    defaults:
+      run:
+        shell: pwsh # use powershell as default shell for all steps
+
     outputs:
       output1: ${{ steps.unzip-file-id.outputs.downloaded-name }}
 
     steps:
       # This job is not intended to run on ubuntu-latest. It downloads the s3 object on the runner's local machine for another job to use. When ununtu-latest the machine gets destroyed after the job is done.
       - name: Log runner label(s) & fail if 'ubuntu-latest'
-        shell: pwsh
         run: |
           echo "runs-on: ${{ inputs.runs-on }}"
           if ("${{ inputs.runs-on }}" -eq 'ubuntu-latest') {
@@ -114,7 +117,6 @@ jobs:
 
       # This step is unnecessary (as we move the file later on to the project folder)
       - name: Check if S3 object already exists locally # (as a directory or file)
-        shell: pwsh
         continue-on-error: true
         id: check-if-object-exists
         run: |
@@ -140,7 +142,6 @@ jobs:
           echo "Object '$objName' doesn't exist locally."
 
       - name: Download object from S3 # (if object doesn't exists locally (as a directory or file))
-        shell: pwsh
         if: steps.check-if-object-exists.outcome == 'success'
         # @() in an array operator - is used to force the output into an array
         run: aws s3 cp "s3://${{ inputs.s3-bucket }}/${{ inputs.s3-prefix }}/${{ steps.get-s3-object-name.outputs.obj-name }}" "${{ inputs.download-path }}/${{ steps.get-s3-object-name.outputs.obj-name }}"

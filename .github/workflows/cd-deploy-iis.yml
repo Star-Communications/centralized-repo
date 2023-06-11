@@ -69,10 +69,13 @@ jobs:
     needs: download-release
     runs-on: ${{ inputs.runs-on }}
 
+    defaults:
+      run:
+        shell: pwsh # use powershell as default shell for all steps
+
     steps:
       # ********** Log variables **********
       - name: Log runner label(s) & fail if 'ubuntu-latest'
-        shell: pwsh
         run: |
           echo "runs-on: ${{ inputs.runs-on }}"
           if ("${{ inputs.runs-on }}" -eq 'ubuntu-latest') {
@@ -86,7 +89,6 @@ jobs:
 
       # ********** Get physical path **********
       - name: Get physical path of iis website # this step is for SPAs
-        shell: pwsh
         run: |
           # STEP 1: Import needed for 'Get-WebSite' cmdlet  
           Import-Module -Name WebAdministration
@@ -144,7 +146,6 @@ jobs:
 
       # Self-hosted runners requires elevated privileges to install and start services - cmd (as admin) run: "config "NAME_OF_YOUR_SERVICE" obj= "NT AUTHORITY\SYSTEM" type= own"
       - name: Stop iis website # no need to check if it's already stopped (doesn't throw error)
-        shell: pwsh
         run: |
           # Import needed for 'Stop-WebSite' cmdlet  
           Import-Module -Name WebAdministration
@@ -166,12 +167,10 @@ jobs:
 
       - name: Overwrite appsettings file (if exists)
         if: inputs.iis-application-name != ''
-        shell: pwsh
         run: if (Test-Path "${{ env.PROJECT_FOLDER_PATH }}/appsettings.json")
           { Copy-Item -Path "${{ env.PROJECT_FOLDER_PATH }}/appsettings.json" -Destination "${{ env.PROJECT_FOLDER_PATH }}/publish/appsettings.json" -Force }
 
       - name: Start iis website
-        shell: pwsh
         run: |
           # Import needed for 'Start-WebSite' cmdlet  
           Import-Module -Name WebAdministration
