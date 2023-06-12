@@ -20,6 +20,7 @@ services:
       - ./nginx/public_html:/public_html
       - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
       - ./nginx/dhparam:/etc/nginx/dhparam
+      - ./nginx/logs:/var/log/nginx
       - ./certbot/conf/:/etc/nginx/ssl/
       - ./certbot/data:/usr/share/nginx/html/letsencrypt
     ports:
@@ -41,7 +42,7 @@ services:
       - ./certbot/logs/:/var/log/letsencrypt
       - ./certbot/data:/usr/share/nginx/html/letsencrypt
     # if "command" & "entrypoint" are both provided, docker will only run "entrypoint" and skip "command"
-    # exec into container and run "command" manually to obtain certificates for your domain(s)
+    # exec into container then run "command" manually to obtain certificates for your domain(s)
     command: certbot certonly --webroot --webroot-path=/usr/share/nginx/html/letsencrypt --email my-email@email.com --agree-tos --no-eff-email -d MY-WEBSITE-1.COM,MY-WEBSITE-2.COM
     # below: check if your certificate is up for renewal every 12 hours (as recommended by Let’s Encrypt).
     entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
@@ -49,14 +50,14 @@ services:
     # tty: true        # docker run -t
 #
 # INSTRUCTIONS:
-# 1) on host machine create directories 'WEBSERVER/nginx/'
-# 2) add this 'docker-compose' file to 'WEBSERVER/'
-#   a) rename 'MY-NETWORK-NAME' to your desired network name !!!
-# 3) add your own 'default.conf' (nginx) to 'WEBSERVER/nginx/'
+# 1) on host machine create directories 'UTILITIES/nginx/'
+# 2) add this 'docker-compose' file to 'UTILITIES/'
+#   a) rename NETWORK to your desired network name !!!
+# 3) add your own 'default.conf' (nginx) to 'UTILITIES/nginx/'
 # 4) create docker network (if it doesn't exist yet): 'docker network create MY-NETWORK-NAME'
 # 5) start containers
-#   a) cd into 'WEBSERVER/'
-#   b) run 'docker compose --file ./docker-compose.nginx-certbot.yml up --build'
+#   a) cd into 'UTILITIES/'
+#   b) run 'docker compose --file ./docker-compose.nginx-certbot.yml up -d --build'
 
 # EXTRA NOTE:
 # - whenever you update your 'default.conf' (nginx) file, you need to restart the nginx container
