@@ -93,8 +93,6 @@ jobs:
 
       # ********** Get executable path of windows service **********
       - name: Get executable path of windows service
-        id: get-exec-path
-        continue-on-error: true # if service is not found, continue and create windows service later
         run: |
           $execPath=(Get-CimInstance -ClassName Win32_Service -Filter "Name='${{ inputs.windows-service-name }}'" | Select-Object -ExpandProperty PathName)
 
@@ -133,12 +131,6 @@ jobs:
       #     run: curl -X POST https://api.scout-camp.io/backup
 
       # Self-hosted runners requires elevated privileges to install and start services - cmd (as admin) run: "config "NAME_OF_YOUR_SERVICE" obj= "NT AUTHORITY\SYSTEM" type= own"
-
-        # create windows service if it doesn't exist
-      - name: Create windows service (if it doesn't exist)
-        # run this step if 'get-exec-path' failed (ie. service doesn't exist)
-        if: steps.get-exec-path.outcome == 'failure'
-        run: SC CREATE "${{ inputs.windows-service-name }}" binPath= "${{ env.PROJECT_FOLDER_PATH }}/publish/${{ inputs.s3-prefix }}.exe" start= auto
 
       - name: Stop windows service
         run: if ((Get-Service "${{ inputs.windows-service-name }}").Status -eq "Running") { Stop-Service -Name "${{ inputs.windows-service-name }}" }
