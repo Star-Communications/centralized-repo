@@ -127,7 +127,7 @@ jobs:
 
           # STEP 4: Set 'PROJECT_FOLDER_PATH' env variable
           if ($projPath) { echo "PROJECT_FOLDER_PATH=$projPath" >> $env:GITHUB_ENV }
-          else { throw "Could not get Root Folder path" }
+          else { throw "Could not get Root Folder path of IIS website/application" }
 
       # ********** Move downloaded release to project folder **********
       - name: Delete docker-files folder from downloaded release

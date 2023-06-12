@@ -85,7 +85,7 @@ jobs:
             throw "File already exists in S3."
           }
 
-      - name: Upload new release folder (zipped) to S3 (add 'latest-marker')
+      - name: Upload new release folder (zipped) to S3
         run: aws s3 cp "${{ env.DOWNLOADS_FOLDER_PATH }}/${{ inputs.artifact-name }}" "s3://${{ inputs.s3-bucket-name }}/${{ inputs.s3-prefix }}/${{ inputs.artifact-name }}"
 
       - name: Delete downloaded artifact file
