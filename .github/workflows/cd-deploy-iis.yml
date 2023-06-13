@@ -161,6 +161,7 @@ jobs:
           # Import needed for 'Stop-WebSite' cmdlet  
           Import-Module -Name WebAdministration
 
+          Stop-WebAppPool -Name "${{ inputs.iis-website-name }}"
           Stop-WebSite -Name "${{ inputs.iis-website-name }}"
 
       - name: Overwrite build folder (dist)
@@ -184,6 +185,7 @@ jobs:
           # Import needed for 'Start-WebSite' cmdlet  
           Import-Module -Name WebAdministration
 
+          Start-WebAppPool -Name "${{ inputs.iis-website-name }}"
           Start-WebSite -Name "${{ inputs.iis-website-name }}"
 
       - name: Clean up release folder (delete all releases except last 5)
