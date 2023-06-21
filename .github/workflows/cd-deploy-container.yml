@@ -106,7 +106,7 @@ jobs:
           Copy-Item -Path "${{ inputs.project-folder-path }}/releases/${{ needs.download-release.outputs.downloaded-name }}/*" -Destination "${{ inputs.project-folder-path }}/" -r -Force
 
       - name: Start new container (docker-compose up -force build)
-        run: docker compose --file "${{ inputs.project-folder-path}}/docker-files/${{ inputs.docker-compose-file-name }}" up --build -d
+        run: docker compose --file "${{ inputs.project-folder-path}}/docker-files/${{ inputs.docker-compose-file-name }}" up -d --build
 
     #   - name: Clean up unused containers & images
     #     run: |
