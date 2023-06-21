@@ -34,6 +34,9 @@ services:
   certbot:
     image: certbot/certbot:latest
     container_name: certbot
+    depends_on:
+      - serviceName: nginx
+        condition: service_started
     restart: unless-stopped
     networks:
       - MY-NETWORK-NAME
@@ -50,14 +53,14 @@ services:
     # tty: true        # docker run -t
 #
 # INSTRUCTIONS:
-# 1) on host machine create directories 'UTILITIES/nginx/'
-# 2) add this 'docker-compose' file to 'UTILITIES/'
-#   a) rename NETWORK to your desired network name !!!
+# 1) add this 'docker-compose' file to 'UTILITIES/'
+# 2) create 'nginx' & 'certbot' directories in 'UTILITIES/'
 # 3) add your own 'default.conf' (nginx) to 'UTILITIES/nginx/'
 # 4) create docker network (if it doesn't exist yet): 'docker network create MY-NETWORK-NAME'
-# 5) start containers
+# 5) rename MY-NETWORK-NAME to your desired network name !!!
+# 6) start container
 #   a) cd into 'UTILITIES/'
 #   b) run 'docker compose --file ./docker-compose.nginx-certbot.yml up -d --build'
 
 # EXTRA NOTE:
-# - whenever you update your 'default.conf' (nginx) file, you need to restart the nginx container
+# - whenever you update your 'default.conf' (nginx) file, restart the nginx container: 'docker restart nginx'

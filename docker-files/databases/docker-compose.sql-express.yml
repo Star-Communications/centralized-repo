@@ -5,9 +5,9 @@ networks:
     external: true
 
 services:
-  SQL-EXPRESS:
+  sql-express:
     image: mcr.microsoft.com/mssql/server:2019-latest
-    container_name: SQL-EXPRESS
+    container_name: sql-express
     restart: unless-stopped
     volumes:
       # what is this for??
@@ -28,19 +28,48 @@ services:
       - MY-NETWORK-NAME
     environment:
       - ACCEPT_EULA=Y # Accept the end user license agreement
-      - MSSQL_SA_PASSWORD=SCTracker@123 # Specify the SA password
+      - MSSQL_SA_PASSWORD=Sa@12345 # Specify the SA password
       - MSSQL_PID=Express # Specify the SQL Server edition to be express edition
 #
-# INSTRUCTIONS:
-# 1) on host machine create directories 'UTILITIES/mssql-express/'
-# 2) update directory permissions - so that docker can access the files
+# [INSTRUCTIONS]
+# 1) Add this 'docker-compose' file to 'UTILITIES/'
+# 2) Create 'mssql-express' folder in 'UTILITIES/'
+# 3) Rename MY-NETWORK-NAME to your desired network name !!!
+# 4) Start container
 #   a) cd into 'UTILITIES/'
-#   a) give read/write/execute permissions for all users:
-#      'sudo chmod -R a+rwx .'
-#   b) set groupID on the directory, so that all new files created within directory & all sub-directories will inherit the groupID
-#      'sudo chmod -R g+s .'
-# 3) add this 'docker-compose' file to 'UTILITIES/'
-#   a) rename NETWORK to your desired network name !!!
-# 4) start container
-#   a) cd into 'UTILITIES/'
-#   b) run 'docker compose --file ./docker-compose.sql-express.yml up -d --build'
+#   b) Run 'docker compose --file ./docker-compose.sql-express.yml up -d --build'
+
+# ------------------------------------------------------------
+
+# [AFTER STARTING THE CONTAINER]
+# 1) Enter container's shell: 'docker exec -it sql-express sh'
+#
+# 2) Limit DB engine to 1 GB memory (RAM):
+#   'echo "sp_configure 'show advanced options', 1; \n GO \n RECONFIGURE; \n GO \n sp_configure 'max server memory', 1024; \n GO \n RECONFIGURE; \n GO" > tmp/limit-memory.sql; /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P 'Sa@12345' -i tmp/limit-memory.sql'
+#    explanation:
+#     1) write T-SQL script to limit the DB engine to 1 GB memory into file 'tmp/limit-memory.sql'
+#     2) run 'limit-memory.sql' sql script using 'sqlcmd -i' command
+#
+# 3) Connect to the SQL Server instance using sqlcmd:
+#  /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P 'Sa@12345'
+#
+# 4) Create a new login for the user (run each line individually):
+#  > CREATE LOGIN [SCTracker] WITH PASSWORD=N'SCTracker@123', DEFAULT_DATABASE=[master], CHECK_EXPIRATION=OFF, CHECK_POLICY=OFF;
+#  > go
+#
+# 5) Verify new login user got created (run each line individually):
+#  > SELECT name FROM sys.sql_logins;
+#  > go
+#
+# 6) Make newly created user a member of 'sysadmin role' (not sure if best practice!!!) (run each line individually):
+#  > EXEC sp_addsrvrolemember 'SCTracker', 'sysadmin';
+#  > go
+#
+# 7) Verify user got added to 'sysadmin role' (run each line individually):
+#  > SELECT IS_SRVROLEMEMBER('sysadmin', 'SCTracker');
+#
+# 6) Add new user with login Access and DB create Permission (needed if I let tracker-api create DB using login user??):
+#  > CREATE LOGIN SCTracker WITH PASSWORD = 'SCTracker@123';
+#  > GO
+#  > CREATE USER SCTracker FOR LOGIN SCTracker
+#  > GO
