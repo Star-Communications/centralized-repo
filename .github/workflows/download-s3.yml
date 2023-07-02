@@ -51,9 +51,9 @@ jobs:
   download-from-s3:
     runs-on: ${{ inputs.runs-on }}
 
-    defaults:
-      run:
-        shell: pwsh # use powershell as default shell for all steps
+    # defaults:
+    #   run:
+    #     shell: pwsh # use powershell as default shell for all steps
 
     outputs:
       output1: ${{ steps.unzip-file-id.outputs.downloaded-name }}
@@ -61,6 +61,7 @@ jobs:
     steps:
       # This job is not intended to run on ubuntu-latest. It downloads the s3 object on the runner's local machine for another job to use. When ununtu-latest the machine gets destroyed after the job is done.
       - name: Log inputs & fail if runs-on='ubuntu-latest'
+        shell: pwsh
         run: |
           echo "runs-on: ${{ inputs.runs-on }}"
           echo "s3-bucket: ${{ inputs.s3-bucket }}"
