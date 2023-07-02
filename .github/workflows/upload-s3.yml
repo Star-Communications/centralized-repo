@@ -42,12 +42,13 @@ jobs:
   upload-to-s3:
     runs-on: ${{ inputs.runs-on || 'ubuntu-latest' }}
 
-    defaults:
-      run:
-        shell: pwsh # use powershell as default shell for all steps
+    # defaults:
+    #   run:
+    #     shell: pwsh # use powershell as default shell for all steps
 
     steps:
       - name: Log inputs
+        shell: pwsh
         run: |
           echo "runs-on: ${{ inputs.runs-on }}"
           echo "artifact-name: ${{ inputs.artifact-name }}"
