@@ -51,38 +51,22 @@ jobs:
   download-from-s3:
     runs-on: ${{ inputs.runs-on }}
 
-    # defaults:
-    #   run:
-    #     shell: pwsh # use powershell as default shell for all steps
+    defaults:
+      run:
+        shell: pwsh # use powershell as default shell for all steps
 
     outputs:
       output1: ${{ steps.unzip-file-id.outputs.downloaded-name }}
 
     steps:
-      # This job is not intended to run on ubuntu-latest. It downloads the s3 object on the runner's local machine for another job to use. When ununtu-latest the machine gets destroyed after the job is done.
-      - name: Log inputs & fail if runs-on='ubuntu-latest'
-        shell: pwsh
-        run: |
-          echo "runs-on: ${{ inputs.runs-on }}"
-          echo "s3-bucket: ${{ inputs.s3-bucket }}"
-          echo "s3-prefix: ${{ inputs.s3-prefix }}"
-          echo "s3-obj-filter: ${{ inputs.s3-obj-filter }}"
-          echo "download-path: ${{ inputs.download-path }}"
-          echo "unzip-file: ${{ inputs.unzip-file }}"
-
-          if ("${{ inputs.runs-on }}" -eq 'ubuntu-latest') {
-            echo "This workflow is not intended to run on ubuntu-latest. Please use self-hosted runner label(s)."
-            exit 1
-          }
-
       # ********** Download object from S3 **********
       - name: Configure AWS credentials
         id: configure-aws-credentials
         uses: aws-actions/configure-aws-credentials@v2
         with:
+          aws-region: eu-central-1
           role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
           role-session-name: DownloadS3Object
-          aws-region: eu-central-1
 
       - name: Get S3 object name (search by s3-obj-filter) & fail if it doesn't exists
         id: get-s3-object-name

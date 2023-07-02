@@ -45,26 +45,7 @@ on:
       # then "download-release.outputs.downloaded-name" = "my-proj-v0.1.29-latest"
 
 jobs:
-  log-inputs:
-    runs-on: ${{ inputs.runs-on }}
-    steps:
-      - name: Log inputs & fail if runs-on='ubuntu-latest'
-        shell: pwsh
-        run: |
-          echo "runs-on: ${{ inputs.runs-on }}"
-          echo "target-version: ${{ inputs.target-version }}"
-          echo "s3-bucket: ${{ inputs.s3-bucket }}"
-          echo "s3-prefix: ${{ inputs.s3-prefix }}"
-          echo "project-folder-path: ${{ inputs.project-folder-path }}"
-          echo "docker-compose-file-name: ${{ inputs.docker-compose-file-name }}"
-
-          if ("${{ inputs.runs-on }}" -eq 'ubuntu-latest') {
-            echo "This workflow is not intended to run on ubuntu-latest. Please use self-hosted runner label(s)."
-            exit 1
-          }
-
   download-release:
-    needs: log-inputs
     uses: ./.github/workflows/download-s3.yml
     with:
       runs-on: ${{ inputs.runs-on }}

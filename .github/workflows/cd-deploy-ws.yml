@@ -44,25 +44,7 @@ env:
   PROJECT_FOLDER_PATH: ""
 
 jobs:
-  log-inputs:
-    runs-on: ${{ inputs.runs-on }}
-    steps:
-      - name: Log inputs & fail if runs-on='ubuntu-latest'
-        shell: pwsh
-        run: |
-          echo "runs-on: ${{ inputs.runs-on }}"
-          echo "target-version: ${{ inputs.target-version }}"
-          echo "s3-bucket: ${{ inputs.s3-bucket }}"
-          echo "s3-prefix: ${{ inputs.s3-prefix }}"
-          echo "windows-service-name: ${{ inputs.windows-service-name }}"
-
-          if ("${{ inputs.runs-on }}" -eq 'ubuntu-latest') {
-            echo "This workflow is not intended to run on ubuntu-latest. Please use self-hosted runner label(s)."
-            exit 1
-          }
-
   download-release:
-    needs: log-inputs
     uses: ./.github/workflows/download-s3.yml # use reuable workflow in the same repo
     with:
       runs-on: ${{ inputs.runs-on }}
@@ -129,9 +111,7 @@ jobs:
       # ********** Update windows serivce **********
       #   - name: Curl backup endpoint (to service Api)
       #     run: curl -X POST https://api.scout-camp.io/backup
-
-      # Self-hosted runners requires elevated privileges to install and start services - cmd (as admin) run: "config "NAME_OF_YOUR_SERVICE" obj= "NT AUTHORITY\SYSTEM" type= own"
-
+      #
       - name: Stop windows service
         run: if ((Get-Service "${{ inputs.windows-service-name }}").Status -eq "Running") { Stop-Service -Name "${{ inputs.windows-service-name }}" }
 

@@ -42,19 +42,13 @@ jobs:
   upload-to-s3:
     runs-on: ${{ inputs.runs-on || 'ubuntu-latest' }}
 
-    # defaults:
-    #   run:
-    #     shell: pwsh # use powershell as default shell for all steps
+    # Set 'shell:pwsh' so that cmds below work on both Windows & Linux runners.
+    # (NOTE: Windows runners can't access bash shell - "Access is denied.")
+    defaults:
+      run:
+        shell: pwsh # use powershell as default shell for all steps
 
     steps:
-      - name: Log inputs
-        shell: pwsh
-        run: |
-          echo "runs-on: ${{ inputs.runs-on }}"
-          echo "artifact-name: ${{ inputs.artifact-name }}"
-          echo "s3-bucket-name: ${{ inputs.s3-bucket-name }}"
-          echo "s3-prefix: ${{ inputs.s3-prefix }}"
-
       # ********** Download artifact **********
       - name: Download artifact file
         uses: actions/download-artifact@v3
@@ -66,12 +60,9 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v2
         with:
+          aws-region: eu-central-1
           role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
           role-session-name: UploadReleaseToS3
-          aws-region: eu-central-1
-
-      # Set shell:pwsh so that cmds below work on both Windows & Linux runners.
-      # (NOTE: Windows runners can't access bash shell - "Access is denied.")
 
       # NOT NEEDED?? As release-drafter step creates a new version even if no new changes are found.
       - name: Check if file already exists in S3
