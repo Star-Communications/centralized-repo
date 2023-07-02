@@ -16,8 +16,13 @@ on:
         required: false
         default: "ubuntu-latest"
 
-      artifact-name:
-        description: "Name of the file to download from artifact (& upload to S3)"
+      toUpload-path:
+        description: "Path in the runner-folder where the file to upload to S3 is located"
+        type: string
+        required: false
+
+      upload-file-name:
+        description: "Name of the file to upload to S3"
         type: string
         required: true
 
@@ -32,7 +37,7 @@ on:
         required: true
 
 env:
-  DOWNLOADS_FOLDER_PATH: "./downloads/artifacts"
+  TO_UPLOAD_FOLDER_PATH: "./toUpload"
 
 permissions:
   id-token: write # This is required for OIDC requesting the JWT
@@ -40,7 +45,7 @@ permissions:
 
 jobs:
   upload-to-s3:
-    runs-on: ${{ inputs.runs-on || 'ubuntu-latest' }}
+    runs-on: ${{ inputs.runs-on }}
 
     # Set 'shell:pwsh' so that cmds below work on both Windows & Linux runners.
     # (NOTE: Windows runners can't access bash shell - "Access is denied.")
@@ -51,10 +56,12 @@ jobs:
     steps:
       # ********** Download artifact **********
       - name: Download artifact file
+        # if no path is specified, download the file to upload from the artifact
+        if: ${{ inputs.toUpload-path == '' }}
         uses: actions/download-artifact@v3
         with:
-          name: ${{ inputs.artifact-name }}
-          path: ${{ env.DOWNLOADS_FOLDER_PATH }}
+          name: ${{ inputs.upload-file-name }}
+          path: ${{ env.TO_UPLOAD_FOLDER_PATH }}
 
       # ********** Upload to S3 **********
       - name: Configure AWS credentials
@@ -67,9 +74,9 @@ jobs:
       # NOT NEEDED?? As release-drafter step creates a new version even if no new changes are found.
       - name: Check if file already exists in S3
         run: |
-          # STEP 1: Get S3 objects that start with same artifact-name
-          echo "Artifact Name: ${{ inputs.artifact-name }}"
-          $existingObjs = (aws s3api list-objects-v2 --bucket "${{ inputs.s3-bucket-name }}" --prefix "${{ inputs.s3-prefix }}" --query "Contents[?starts_with(Key, '${{ inputs.artifact-name }}')].Key" --output text)
+          # STEP 1: Get S3 objects that start with same upload-file-name
+          echo "Artifact Name: ${{ inputs.upload-file-name }}"
+          $existingObjs = (aws s3api list-objects-v2 --bucket "${{ inputs.s3-bucket-name }}" --prefix "${{ inputs.s3-prefix }}" --query "Contents[?starts_with(Key, '${{ inputs.upload-file-name }}')].Key" --output text)
           echo "S3 Objects with same File name: $existingObjs"
 
           # STEP 2: If any objects were found, throw error
@@ -78,7 +85,7 @@ jobs:
           }
 
       - name: Upload new release folder (zipped) to S3
-        run: aws s3 cp "${{ env.DOWNLOADS_FOLDER_PATH }}/${{ inputs.artifact-name }}" "s3://${{ inputs.s3-bucket-name }}/${{ inputs.s3-prefix }}/${{ inputs.artifact-name }}"
+        run: aws s3 cp "${{ env.TO_UPLOAD_FOLDER_PATH }}/${{ inputs.upload-file-name }}" "s3://${{ inputs.s3-bucket-name }}/${{ inputs.s3-prefix }}/${{ inputs.upload-file-name }}"
 
       - name: Delete downloaded artifact file
-        run: Remove-Item -Path "${{ env.DOWNLOADS_FOLDER_PATH }}/${{ inputs.artifact-name }}" -Force
+        run: Remove-Item -Path "${{ env.TO_UPLOAD_FOLDER_PATH }}/${{ inputs.upload-file-name }}" -Force
