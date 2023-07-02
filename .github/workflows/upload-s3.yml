@@ -16,11 +16,6 @@ on:
         required: false
         default: "ubuntu-latest"
 
-      toUpload-path:
-        description: "Path in the runner-folder where the file to upload to S3 is located"
-        type: string
-        required: false
-
       upload-file-name:
         description: "Name of the file to upload to S3"
         type: string
@@ -56,9 +51,8 @@ jobs:
     steps:
       # ********** Download artifact **********
       - name: Download artifact file
-        # if no path is specified, download the file to upload from the artifact
-        if: ${{ inputs.toUpload-path == '' }}
         uses: actions/download-artifact@v3
+        continue-on-error: true # if no artifact is found, continue with next steps
         with:
           name: ${{ inputs.upload-file-name }}
           path: ${{ env.TO_UPLOAD_FOLDER_PATH }}
