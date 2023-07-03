@@ -113,7 +113,11 @@ jobs:
       #     run: curl -X POST https://api.scout-camp.io/backup
       #
       - name: Stop windows service
-        run: if ((Get-Service "${{ inputs.windows-service-name }}").Status -eq "Running") { Stop-Service -Name "${{ inputs.windows-service-name }}" }
+        run: |
+          if ((Get-Service "${{ inputs.windows-service-name }}").Status -eq "Running") { 
+            Stop-Service -Name "${{ inputs.windows-service-name }}"
+            Start-Sleep -Seconds 30
+          }
 
         # TODO: check system architecture (32 or 64 bits) and install the right version of the service
         # cmd: if ([System.Environment]::Is64BitOperatingSystem) { Write-Host "64-bit operating system" } else { Write-Host "32-bit operating system" }
