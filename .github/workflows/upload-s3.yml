@@ -37,7 +37,7 @@ env:
 
 permissions:
   id-token: write # This is required for OIDC requesting the JWT
-  contents: read # This is required for actions/checkout
+#   contents: read # This is required for actions/checkout
 
 jobs:
   upload-to-s3:
