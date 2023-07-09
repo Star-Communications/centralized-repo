@@ -39,6 +39,10 @@ on:
       # if path to downloaded release is "C:\actions-runner\_work\MyProj\downloads\s3\my-proj\my-proj-v0.1.29-latest",
       # then "download-release.outputs.downloaded-name" = "my-proj-v0.1.29-latest"
 
+# disable permissions for all scopes (except for id-token)
+permissions:
+  id-token: write # this is required for OIDC requesting the JWT
+
 env:
   # eg: C:/SC-TRACKER/INSTALLATION FILES/project_name/
   PROJECT_FOLDER_PATH: ""

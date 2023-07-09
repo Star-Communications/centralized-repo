@@ -35,9 +35,10 @@ env:
   UPLOADS_FOLDER_PATH: ""
   UPLOAD_FILE_NAME: ""
 
+# disable permissions for all scopes (except for id-token)
 permissions:
-  id-token: write # This is required for OIDC requesting the JWT
-#   contents: read # This is required for actions/checkout
+  id-token: write # this is required for OIDC requesting the JWT
+#   contents: read # this is required for actions/checkout
 
 jobs:
   upload-to-s3:
@@ -58,11 +59,12 @@ jobs:
 
           echo "UPLOADS_FOLDER_PATH=$folderPath" >> $env:GITHUB_ENV
           echo "UPLOAD_FILE_NAME=$fileName" >> $env:GITHUB_ENV
-          
+
           echo "Folder Path: $folderPath"
           echo "File Name: $fileName"
 
       # ********** Download artifact **********
+      # if no artifact is found, then upload file is already in the self-hosted runner filesystem
       - name: Download artifact file
         uses: actions/download-artifact@v3
         continue-on-error: true # if no artifact is found, continue with next steps
