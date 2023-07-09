@@ -148,14 +148,18 @@ jobs:
 
           Stop-WebAppPool -Name "${{ inputs.iis-website-name }}"
           Stop-WebSite -Name "${{ inputs.iis-website-name }}"
+          # (cmd): %systemroot%\System32\inetsrv\appcmd stop apppool /apppool.name:"SC-Tracker"
+          # (cmd): %systemroot%\System32\inetsrv\appcmd stop site /site.name:"SC-Tracker"
+          # (cmd to stop the "World Wide Web Publishing Service" to stop iis service): if ((Get-Service "w3svc").Status -eq "Running") { Stop-Service -Name "w3svc" } 
+          sc stop w3svc
 
       - name: Overwrite build folder (dist)
         # run if 'iis-application-name' is not empty
         if: inputs.iis-application-name == ''
         run: Copy-Item -Path "${{ env.PROJECT_FOLDER_PATH }}/releases/${{ needs.download-release.outputs.downloaded-name }}/dist/*" -Destination "${{ env.PROJECT_FOLDER_PATH }}/dist" -r -Force
 
-      # TODO: check system architecture (32 or 64 bits) and install the right version of the service
-      # cmd: if ([System.Environment]::Is64BitOperatingSystem) { Write-Host "64-bit operating system" } else { Write-Host "32-bit operating system" }
+        # TODO: check system architecture (32 or 64 bits) and install the right version of the service
+        # cmd: if ([System.Environment]::Is64BitOperatingSystem) { Write-Host "64-bit operating system" } else { Write-Host "32-bit operating system" }
       - name: Overwrite build folder (publish)
         if: inputs.iis-application-name != ''
         run: Copy-Item -Path "${{ env.PROJECT_FOLDER_PATH }}/releases/${{ needs.download-release.outputs.downloaded-name }}/publish/*" -Destination "${{ env.PROJECT_FOLDER_PATH }}/publish" -r -Force
@@ -172,6 +176,9 @@ jobs:
 
           Start-WebAppPool -Name "${{ inputs.iis-website-name }}"
           Start-WebSite -Name "${{ inputs.iis-website-name }}"
+
+          # (cmd to start the "World Wide Web Publishing Service" to start iis service): if ((Get-Service "w3svc").Status -eq "Running") { Start-Service -Name "w3svc" } 
+          sc start w3svc
 
       - name: Clean up release folder (delete all releases except last 5)
         run: Get-ChildItem -Path "${{ env.PROJECT_FOLDER_PATH }}/releases" | Sort-Object -Property CreationTime -Descending | Select-Object -Skip 5 | Remove-Item -r -Force
