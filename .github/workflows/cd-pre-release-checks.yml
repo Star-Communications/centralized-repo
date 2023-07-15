@@ -1,5 +1,5 @@
-# Check if new release
-name: is-new-release
+# Run pre-release checks before running the build release workflow
+name: pre-release-checks
 
 on:
   workflow_call:
@@ -8,21 +8,33 @@ on:
         description: "Type of runner(s) to use (comma separated)"
         type: string
         required: false
-        default: "ubuntu-latest"
+        default: "yasmin-machine-org"
 
     outputs:
       is-new-release-job-output:
         description: "Flag to indicate if current commit is a new release"
-        value: ${{ jobs.is-new-release.outputs.output1 }}
+        value: ${{ jobs.pre-release-checks.outputs.is-new-release-output }}
 
 jobs:
-  is-new-release:
+  pre-release-checks:
     runs-on: ${{ inputs.runs-on }}
 
     outputs:
-      output1: ${{ steps.check-tag.outputs.is-new-release-step-output }}
+      is-new-release-output: ${{ steps.check-tag.outputs.is-new-release-step-output }}
 
     steps:
+      # prevent running 'build-release' job (checkout our code) on a customer's runner
+      - name: Verify runner environment
+        shell: pwsh
+        run: |
+          # Fail if runner is not 'ubuntu-latest' or 'yasmin-machine-org'
+          if ('${{ inputs.runs-on }}' -notin @('ubuntu-latest', 'yasmin-machine-org')) {
+            echo "Runner must be either 'ubuntu-latest' or 'yasmin-machine-org'"
+            exit 1
+          }
+
+          echo "Runner '${{ inputs.runs-on }}' is valid."
+
       - uses: actions/checkout@v3
         with:
           fetch-depth: 0
