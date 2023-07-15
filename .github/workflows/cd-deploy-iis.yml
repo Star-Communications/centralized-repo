@@ -144,18 +144,18 @@ jobs:
       # Self-hosted runners requires elevated privileges to install and start services - cmd (as admin) run: "config "NAME_OF_YOUR_SERVICE" obj= "NT AUTHORITY\SYSTEM" type= own"
       - name: Stop iis website # no need to check if it's already stopped (doesn't throw error)
         run: |
-          # Import needed for 'Stop-WebSite' cmdlet  
-          Import-Module -Name WebAdministration
+          # # Import needed for 'Stop-WebSite' cmdlet  
+          # Import-Module -Name WebAdministration
 
-          $siteStatus=(Get-Website -Name "${{ inputs.iis-website-name }}" | Select-Object -ExpandProperty State)
+          # $siteStatus=(Get-Website -Name "${{ inputs.iis-website-name }}" | Select-Object -ExpandProperty State)
 
-          if ($siteStatus -eq "Started") {
-            echo "Stopping '${{ inputs.iis-website-name }}' website"
+          # if ($siteStatus -eq "Started") {
+            # echo "Stopping '${{ inputs.iis-website-name }}' website"
 
-            Stop-WebAppPool -Name "${{ inputs.iis-website-name }}"
-            Stop-WebSite -Name "${{ inputs.iis-website-name }}"
-          }
-          else { echo "Website '${{ inputs.iis-website-name }}' is already stopped" }
+            # Stop-WebAppPool -Name "${{ inputs.iis-website-name }}"
+            # Stop-WebSite -Name "${{ inputs.iis-website-name }}"
+          # }
+          # else { echo "Website '${{ inputs.iis-website-name }}' is already stopped" }
 
           # (cmd): %systemroot%\System32\inetsrv\appcmd stop apppool /apppool.name:"SC-Tracker"
           # (cmd): %systemroot%\System32\inetsrv\appcmd stop site /site.name:"SC-Tracker"
@@ -182,11 +182,11 @@ jobs:
 
       - name: Start iis website
         run: |
-          # Import needed for 'Start-WebSite' cmdlet  
-          Import-Module -Name WebAdministration
+          # # Import needed for 'Start-WebSite' cmdlet  
+          # Import-Module -Name WebAdministration
 
-          Start-WebAppPool -Name "${{ inputs.iis-website-name }}"
-          Start-WebSite -Name "${{ inputs.iis-website-name }}"
+          # Start-WebAppPool -Name "${{ inputs.iis-website-name }}"
+          # Start-WebSite -Name "${{ inputs.iis-website-name }}"
 
           # start the "World Wide Web Publishing Service" to start iis service
           Start-Service -Name "w3svc"
