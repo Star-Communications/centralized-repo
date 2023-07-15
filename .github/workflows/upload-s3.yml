@@ -1,5 +1,5 @@
 # Upload object to S3
-name: upload-s3
+name: upload-to-s3
 
 on:
   workflow_call:
