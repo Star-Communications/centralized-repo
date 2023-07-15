@@ -64,8 +64,9 @@ jobs:
     #   downloaded-name-job-output:
 
   deploy-ws:
-    needs: download-release
     runs-on: ${{ inputs.runs-on }}
+    
+    needs: download-release
 
     defaults:
       run:
