@@ -11,7 +11,7 @@ on:
         default: "ubuntu-latest"
 
     outputs:
-      is-new-release:
+      is-new-release-job-output:
         description: "Flag to indicate if current commit is a new release"
         value: ${{ jobs.is-new-release.outputs.output1 }}
 
@@ -20,7 +20,7 @@ jobs:
     runs-on: ${{ inputs.runs-on }}
 
     outputs:
-      output1: ${{ steps.check-tag.outputs.is-new-release-flg }}
+      output1: ${{ steps.check-tag.outputs.is-new-release-step-output }}
 
     steps:
       - uses: actions/checkout@v3
@@ -44,13 +44,13 @@ jobs:
           # STEP 4: Compare $latestTag with $currentCommitTag
           if ($latestTag -eq $currentCommitTag) {
             echo "Current commit is already tagged"
-            echo "is-new-release-flg=false" >> $env:GITHUB_OUTPUT
-            echo "is-new-release-flg = false"
+            echo "is-new-release-step-output=false" >> $env:GITHUB_OUTPUT
+            echo "is-new-release-step-output = false"
           }
           else {
             echo "Current commit is not tagged"
-            echo "is-new-release-flg=true" >> $env:GITHUB_OUTPUT
-            echo "is-new-release-flg = true"
+            echo "is-new-release-step-output=true" >> $env:GITHUB_OUTPUT
+            echo "is-new-release-step-output = true"
           }
 
           # Add 'exit 0' to avoid step failure when '--exact-match' return process exit code 1
