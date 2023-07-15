@@ -71,7 +71,7 @@ jobs:
 
   deploy-publish-iis-application:
     runs-on: ${{ inputs.runs-on }}
-    
+
     needs: download-release
 
     defaults:
@@ -147,8 +147,16 @@ jobs:
           # Import needed for 'Stop-WebSite' cmdlet  
           Import-Module -Name WebAdministration
 
-          Stop-WebAppPool -Name "${{ inputs.iis-website-name }}"
-          Stop-WebSite -Name "${{ inputs.iis-website-name }}"
+          $siteStatus=(Get-Website -Name "${{ inputs.iis-website-name }}" | Select-Object -ExpandProperty State)
+
+          if ($siteStatus -eq "Started") {
+            echo "Stopping '${{ inputs.iis-website-name }}' website"
+
+            Stop-WebAppPool -Name "${{ inputs.iis-website-name }}"
+            Stop-WebSite -Name "${{ inputs.iis-website-name }}"
+          }
+          else { echo "Website '${{ inputs.iis-website-name }}' is already stopped" }
+
           # (cmd): %systemroot%\System32\inetsrv\appcmd stop apppool /apppool.name:"SC-Tracker"
           # (cmd): %systemroot%\System32\inetsrv\appcmd stop site /site.name:"SC-Tracker"
           # (cmd to stop the "World Wide Web Publishing Service" to stop iis service): if ((Get-Service "w3svc").Status -eq "Running") { Stop-Service -Name "w3svc" } 
