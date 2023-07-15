@@ -43,7 +43,7 @@ on:
         default: false
 
     outputs:
-      downloaded-name:
+      downloaded-name-job-output:
         description: "The name of the downloaded file or folder (if unzipped)"
         value: ${{ jobs.download-from-s3.outputs.output1 }}
 
@@ -56,7 +56,7 @@ jobs:
         shell: pwsh # use powershell as default shell for all steps
 
     outputs:
-      output1: ${{ steps.unzip-file-id.outputs.downloaded-name }}
+      output1: ${{ steps.unzip-file-id.outputs.downloaded-name-step-output }}
 
     steps:
       # ********** Download object from S3 **********
@@ -177,6 +177,6 @@ jobs:
           if ("${{ inputs.unzip-file }}" -eq "true") { $objName = "$objName".replace(".zip", "") }
 
           # STEP 6: Set $objName as an env variable (check OS to use appropriate syntax)
-          echo "downloaded-name=$objName" >> $env:GITHUB_OUTPUT
+          echo "downloaded-name-step-output=$objName" >> $env:GITHUB_OUTPUT
 
-          echo "downloaded-name= '$objName'"
+          echo "downloaded-name-step-output= '$objName'"

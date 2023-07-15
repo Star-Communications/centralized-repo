@@ -37,7 +37,7 @@ on:
         required: true
 
       # if path to downloaded release is "C:\actions-runner\_work\MyProj\downloads\s3\my-proj\my-proj-v0.1.29-latest",
-      # then "download-release.outputs.downloaded-name" = "my-proj-v0.1.29-latest"
+      # then "download-release.outputs.downloaded-name-job-output" = "my-proj-v0.1.29-latest"
 
 # disable permissions for all scopes (except for id-token)
 permissions:
@@ -61,7 +61,7 @@ jobs:
     secrets:
       AWS_ROLE_TO_ASSUME: ${{ secrets.AWS_ROLE_TO_ASSUME }}
     # the job returns the following outputs:
-    #   downloaded-name:
+    #   downloaded-name-job-output:
 
   deploy-ws:
     needs: download-release
@@ -75,7 +75,7 @@ jobs:
       # ********** Log variables **********
       - name: Log 'download-release' step outputs
         run: |
-          echo "downloaded-name: ${{ needs.download-release.outputs.downloaded-name }}"
+          echo "downloaded-name-job-output: ${{ needs.download-release.outputs.downloaded-name-job-output }}"
 
       # ********** Get executable path of windows service **********
       - name: Get executable path of windows service
@@ -96,8 +96,8 @@ jobs:
       - name: Delete docker-files folder from downloaded release
         run: |
           # delete docker-files folder (if it exists)
-          if (Test-Path -Path "./downloads/s3/${{ needs.download-release.outputs.downloaded-name }}/docker-files") {
-            Remove-Item -Path "./downloads/s3/${{ needs.download-release.outputs.downloaded-name }}/docker-files" -r -Force
+          if (Test-Path -Path "./downloads/s3/${{ needs.download-release.outputs.downloaded-name-job-output }}/docker-files") {
+            Remove-Item -Path "./downloads/s3/${{ needs.download-release.outputs.downloaded-name-job-output }}/docker-files" -r -Force
           }
 
       - name: Move downloaded release to project folder
@@ -108,8 +108,8 @@ jobs:
           }
 
           # STEP 2: Move downloaded release folder to destination folder (if not already there)
-          if (!(Test-Path -Path "${{ env.PROJECT_FOLDER_PATH }}/releases/${{ needs.download-release.outputs.downloaded-name }}")) {
-              Move-Item -Path "./downloads/s3/${{ needs.download-release.outputs.downloaded-name }}" -Destination "${{ env.PROJECT_FOLDER_PATH }}/releases/" -Force
+          if (!(Test-Path -Path "${{ env.PROJECT_FOLDER_PATH }}/releases/${{ needs.download-release.outputs.downloaded-name-job-output }}")) {
+              Move-Item -Path "./downloads/s3/${{ needs.download-release.outputs.downloaded-name-job-output }}" -Destination "${{ env.PROJECT_FOLDER_PATH }}/releases/" -Force
           }
 
       # ********** Update windows serivce **********
@@ -126,7 +126,7 @@ jobs:
         # TODO: check system architecture (32 or 64 bits) and install the right version of the service
         # cmd: if ([System.Environment]::Is64BitOperatingSystem) { Write-Host "64-bit operating system" } else { Write-Host "32-bit operating system" }
       - name: Overwrite build folder (publish)
-        run: Copy-Item -Path "${{ env.PROJECT_FOLDER_PATH }}/releases/${{ needs.download-release.outputs.downloaded-name }}/publish/*" -Destination "${{ env.PROJECT_FOLDER_PATH }}/publish" -r -Force
+        run: Copy-Item -Path "${{ env.PROJECT_FOLDER_PATH }}/releases/${{ needs.download-release.outputs.downloaded-name-job-output }}/publish/*" -Destination "${{ env.PROJECT_FOLDER_PATH }}/publish" -r -Force
 
       - name: Overwrite appsettings file (if exists)
         run: if (Test-Path "${{ env.PROJECT_FOLDER_PATH }}/appsettings.json")

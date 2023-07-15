@@ -42,7 +42,7 @@ on:
         required: true
 
       # if path to downloaded release is "C:\actions-runner\_work\MyProj\downloads\s3\my-proj\my-proj-v0.1.29-latest",
-      # then "download-release.outputs.downloaded-name" = "my-proj-v0.1.29-latest"
+      # then "download-release.outputs.downloaded-name-job-output" = "my-proj-v0.1.29-latest"
 
 # disable permissions for all scopes (except for id-token)
 permissions:
@@ -62,7 +62,7 @@ jobs:
     secrets:
       AWS_ROLE_TO_ASSUME: ${{ secrets.AWS_ROLE_TO_ASSUME }}
     # the job returns the following outputs:
-    #   downloaded-name:
+    #   downloaded-name-job-output:
 
   deploy-container:
     needs: download-release
@@ -75,7 +75,7 @@ jobs:
     steps:
       - name: Log 'download-release' job output
         run: |
-          echo "downloaded-name: ${{ needs.download-release.outputs.downloaded-name }}"
+          echo "downloaded-name-job-output: ${{ needs.download-release.outputs.downloaded-name-job-output }}"
 
       # ********** Build new image & run new container **********
       #   - name: Curl backup endpoint (to service Api)
@@ -88,7 +88,7 @@ jobs:
 
       - name: Overwrite old build/publish & docker files with new release files
         run: |
-          Copy-Item -Path "${{ inputs.project-folder-path }}/releases/${{ needs.download-release.outputs.downloaded-name }}/*" -Destination "${{ inputs.project-folder-path }}/" -r -Force
+          Copy-Item -Path "${{ inputs.project-folder-path }}/releases/${{ needs.download-release.outputs.downloaded-name-job-output }}/*" -Destination "${{ inputs.project-folder-path }}/" -r -Force
 
       - name: Start new container (docker-compose up -force build)
         run: docker compose --file "${{ inputs.project-folder-path}}/docker-files/${{ inputs.docker-compose-file-name }}" up -d --build
