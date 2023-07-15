@@ -160,7 +160,7 @@ jobs:
           # (cmd): %systemroot%\System32\inetsrv\appcmd stop apppool /apppool.name:"SC-Tracker"
           # (cmd): %systemroot%\System32\inetsrv\appcmd stop site /site.name:"SC-Tracker"
           # (cmd to stop the "World Wide Web Publishing Service" to stop iis service): if ((Get-Service "w3svc").Status -eq "Running") { Stop-Service -Name "w3svc" } 
-          sc stop w3svc
+          # sc stop w3svc
 
       - name: Overwrite build folder (dist)
         # run if 'iis-application-name' is not empty
