@@ -1,0 +1,57 @@
+# Check if new release
+name: is-new-release
+
+on:
+  workflow_call:
+    inputs:
+      runs-on:
+        description: "Type of runner(s) to use (comma separated)"
+        type: string
+        required: false
+        default: "ubuntu-latest"
+
+    outputs:
+      is-new-release:
+        description: "Flag to indicate if current commit is a new release"
+        value: ${{ jobs.is-new-release.outputs.output1 }}
+
+jobs:
+  is-new-release:
+    runs-on: ${{ inputs.runs-on }}
+
+    outputs:
+      output1: ${{ steps.check-tag.outputs.is-new-release-flg }}
+
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Check if current commit is already tagged
+        shell: pwsh
+        id: check-tag
+        run: |
+          # STEP 1: Get latest tag
+          $latestTag = git describe --tags --abbrev=0
+
+          # STEP 2: Get current commit hash
+          $currentCommit = git rev-parse HEAD
+
+          # STEP 3: Get current commit tag (if tagged, else '2>&1' will return the error message)
+          $currentCommitTag=$(git describe --tags --abbrev=0 --exact-match "$currentCommit" 2>&1)
+          echo "currentCommitTag = $currentCommitTag"
+
+          # STEP 4: Compare $latestTag with $currentCommitTag
+          if ($latestTag -eq $currentCommitTag) {
+            echo "Current commit is already tagged"
+            echo "is-new-release-flg=false" >> $env:GITHUB_OUTPUT
+            echo "is-new-release-flg = false"
+          }
+          else {
+            echo "Current commit is not tagged"
+            echo "is-new-release-flg=true" >> $env:GITHUB_OUTPUT
+            echo "is-new-release-flg = true"
+          }
+
+          # Add 'exit 0' to avoid step failure when '--exact-match' return process exit code 1
+          exit 0;
