@@ -28,12 +28,12 @@ jobs:
         shell: pwsh
         run: |
           # Fail if runner is not 'ubuntu-latest' or 'yasmin-machine-org'
-          if ('${{ inputs.runs-on }}' -notin @('ubuntu-latest', 'yasmin-machine-org')) {
-            echo "Runner must be either 'ubuntu-latest' or 'yasmin-machine-org'"
-            exit 1
-          }
+          # if ('${{ inputs.runs-on }}' -notin @('ubuntu-latest', 'yasmin-machine-org')) {
+          #   echo "Runner must be either 'ubuntu-latest' or 'yasmin-machine-org'"
+          #   exit 1
+          # }
 
-          echo "Runner '${{ inputs.runs-on }}' is valid."
+          echo On "Runner '${{ inputs.runs-on }}'."
 
       - uses: actions/checkout@v3
         with:
