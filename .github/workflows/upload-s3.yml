@@ -66,7 +66,7 @@ jobs:
       # ********** Download artifact **********
       # if no artifact is found, then upload file is already in the self-hosted runner filesystem
       - name: Download artifact file
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         continue-on-error: true # if no artifact is found, continue with next steps
         with:
           name: ${{ env.UPLOAD_FILE_NAME }}
