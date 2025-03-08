@@ -8,7 +8,7 @@ on:
         description: "Type of runner(s) to use (comma separated)"
         type: string
         required: false
-        default: "yasmin-machine-org"
+        default: "ubuntu-latest"
 
     outputs:
       is-new-release-job-output:
@@ -27,6 +27,7 @@ jobs:
         with:
           fetch-depth: 0
 
+        # Check if current commit is already tagged, to avoid building the same release again.
       - name: Check if current commit is already tagged
         shell: pwsh
         id: check-tag
