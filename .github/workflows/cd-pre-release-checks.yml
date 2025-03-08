@@ -23,19 +23,7 @@ jobs:
       is-new-release-output: ${{ steps.check-tag.outputs.is-new-release-step-output }}
 
     steps:
-      # prevent running 'build-release' job (checkout our code) on a customer's runner
-      - name: Verify runner environment
-        shell: pwsh
-        run: |
-          # Fail if runner is not 'ubuntu-latest' or 'yasmin-machine-org'
-          # if ('${{ inputs.runs-on }}' -notin @('ubuntu-latest', 'yasmin-machine-org')) {
-          #   echo "Runner must be either 'ubuntu-latest' or 'yasmin-machine-org'"
-          #   exit 1
-          # }
-
-          echo On "Runner '${{ inputs.runs-on }}'."
-
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
