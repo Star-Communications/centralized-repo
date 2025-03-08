@@ -74,7 +74,7 @@ jobs:
 
       # ********** Upload to S3 **********
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v2
+        uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-region: eu-central-1
           role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
@@ -96,5 +96,5 @@ jobs:
       - name: Upload new release folder (zipped) to S3
         run: aws s3 cp "${{ env.UPLOADS_FOLDER_PATH }}/${{ env.UPLOAD_FILE_NAME }}" "s3://${{ inputs.s3-bucket-name }}/${{ inputs.s3-prefix }}/${{ env.UPLOAD_FILE_NAME }}"
 
-      - name: Delete downloaded artifact file
+      - name: Delete release file
         run: Remove-Item -Path "${{ env.UPLOADS_FOLDER_PATH }}/${{ env.UPLOAD_FILE_NAME }}" -Force
