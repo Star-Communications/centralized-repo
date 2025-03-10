@@ -1,5 +1,5 @@
 # Run pre-release checks before running the build release workflow
-name: pre-release-checks
+name: pre-build-release
 
 on:
   workflow_call:
@@ -13,10 +13,10 @@ on:
     outputs:
       is-new-release-job-output:
         description: "Flag to indicate if current commit is a new release"
-        value: ${{ jobs.pre-release-checks.outputs.is-new-release-output }}
+        value: ${{ jobs.pre-build-release.outputs.is-new-release-output }}
 
 jobs:
-  pre-release-checks:
+  pre-build-release:
     runs-on: ${{ inputs.runs-on }}
 
     outputs:
@@ -27,8 +27,7 @@ jobs:
         with:
           fetch-depth: 0
 
-        # Check if current commit is already tagged, to avoid building the same release again.
-      - name: Check if current commit is already tagged
+      - name: Check if current commit is already tagged (avoid building same release again)
         shell: pwsh
         id: check-tag
         run: |
