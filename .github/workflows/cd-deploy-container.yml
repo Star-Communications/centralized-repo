@@ -14,6 +14,11 @@ on:
         type: string
         required: true
 
+      linux-user:
+        description: "Linux user to use for the project folder path"
+        type: string
+        required: true
+
       target-version:
         description: "Version to deploy (if not of latest)"
         type: string
@@ -30,14 +35,8 @@ on:
         required: false
         default: ""
 
-      project-folder-path:
-        # eg: (C: OR /home/ubuntu)/SC-TRACKER/INSTALLATION FILES/tracker-mw
-        description: "Path to the project folder (where the 'docker-files' folder is)"
-        type: string
-        required: true
-
-      docker-compose-file-name:
-        description: "Name of the docker-compose to use."
+      project-name:
+        description: "Name of the project"
         type: string
         required: true
 
@@ -49,7 +48,40 @@ permissions:
   id-token: write # this is required for OIDC requesting the JWT
 
 jobs:
+  # ---------- JOB ----------
+  # log the outputs of the previous job & set outputs for the next job
+  pre-deploy:
+    runs-on: ${{ inputs.runs-on }}
+
+    outputs:
+      project-folder-path: ${{ steps.set-output-vars.outputs.project-folder-path }}
+
+    steps:
+      - name: Set output variables for next job (depending on the runner's OS)
+        id: set-output-vars
+        shell: pwsh
+        run: |
+          if ("${{ runner.os }}" -eq 'Linux') {
+            $projFolderPath = "/home/${{ inputs.linux-user }}/STAR-COM/${{ inputs.project-name }}"
+          }
+          else {
+            $projFolderPath = "C:/STAR-COM/${{ inputs.project-name }}"
+          }
+
+          echo "project-folder-path=$projFolderPath" >> $env:GITHUB_OUTPUT
+          echo "projFolderPath = $projFolderPath"
+
+      - name: Ensure folder structure exists (if not already)
+        run: |
+          if ("${{ runner.os }}" -eq 'Linux') {
+            mkdir -p "/home/${{ inputs.linux-user }}/STAR-COM/${{ inputs.project-name }}/installation-files"
+          }
+          else {
+            mkdir -p "C:/STAR-COM/${{ inputs.project-name }}/installation-files"
+          }
+
   download-release:
+    needs: pre-deploy
     uses: ./.github/workflows/download-s3.yml
     with:
       runs-on: ${{ inputs.runs-on }}
@@ -57,17 +89,18 @@ jobs:
       s3-prefix: ${{ inputs.s3-prefix }}
       # <condition> && <true-value> || <false-value>
       s3-obj-filter: ${{ contains(inputs.target-version, 'latest') && ' ' || inputs.target-version }}
-      download-path: "${{ inputs.project-folder-path }}/releases"
+      download-path: "${{ needs.pre-deploy.outputs.project-folder-path }}/releases"
       unzip-file: true
     secrets:
       AWS_ROLE_TO_ASSUME: ${{ secrets.AWS_ROLE_TO_ASSUME }}
     # the job returns the following outputs:
     #   downloaded-name-job-output:
 
+  
   deploy-container:
     runs-on: ${{ inputs.runs-on }}
     
-    needs: download-release
+    needs: [pre-deploy, download-release]
 
     defaults:
       run:
@@ -80,18 +113,19 @@ jobs:
 
 
       # ********** Build new image & run new container **********
+      # "docker-compose.auth-server.prod.yml"
 
       - name: Stop existing container(s)
-        run: docker compose --file "${{ inputs.project-folder-path}}/installation-files/docker-files/${{ inputs.docker-compose-file-name }}" down
+        run: docker compose --file "${{ needs.pre-deploy.outputs.project-folder-path}}/installation-files/docker-files/docker-compose.${{ inputs.project-name}}.prod.yml" down
         # 'continue-on-error' in case of first time installation & there are no 'docker-files' yet
         continue-on-error: true
 
       # - name: Backup old env/appsettings files
       #   run: |
-      #     $envFiles = Get-ChildItem -Path "${{ inputs.project-folder-path }}" -Filter "*.env" -Recurse
-      #     $appsettingsFiles = Get-ChildItem -Path "${{ inputs.project-folder-path }}" -Filter "appsettings*.json" -Recurse
+      #     $envFiles = Get-ChildItem -Path "${{ needs.pre-deploy.outputs.project-folder-path }}" -Filter "*.env" -Recurse
+      #     $appsettingsFiles = Get-ChildItem -Path "${{ needs.pre-deploy.outputs.project-folder-path }}" -Filter "appsettings*.json" -Recurse
 
-      #     $backupFolder = "${{ inputs.project-folder-path }}/installation-files/env-file-backup"
+      #     $backupFolder = "${{ needs.pre-deploy.outputs.project-folder-path }}/installation-files/env-file-backup"
       #     New-Item -Path $backupFolder -ItemType Directory -Force
 
       #     foreach ($envFile in $envFiles) {
@@ -104,25 +138,25 @@ jobs:
 
       - name: Overwrite old build/publish & docker files with new release files
         run: |
-          Copy-Item -Path "${{ inputs.project-folder-path }}/releases/${{ needs.download-release.outputs.downloaded-name-job-output }}/*" -Destination "${{ inputs.project-folder-path }}/" -r -Force
+          Copy-Item -Path "${{ needs.pre-deploy.outputs.project-folder-path }}/releases/${{ needs.download-release.outputs.downloaded-name-job-output }}/*" -Destination "${{ needs.pre-deploy.outputs.project-folder-path }}/" -r -Force
 
       # - name: Restore old env/appsettings files
       #   run: |
-      #     $backupFolder = "${{ inputs.project-folder-path }}/installation-files/env-file-backup"
+      #     $backupFolder = "${{ needs.pre-deploy.outputs.project-folder-path }}/installation-files/env-file-backup"
 
       #     $envFiles = Get-ChildItem -Path $backupFolder -Filter "*.env" -Recurse
       #     $appsettingsFiles = Get-ChildItem -Path $backupFolder -Filter "appsettings*.json" -Recurse
 
       #     foreach ($envFile in $envFiles) {
-      #       Copy-Item -Path $envFile.FullName -Destination "${{ inputs.project-folder-path }}" -Force
+      #       Copy-Item -Path $envFile.FullName -Destination "${{ needs.pre-deploy.outputs.project-folder-path }}" -Force
       #     }
 
       #     foreach ($appsettingsFile in $appsettingsFiles) {
-      #       Copy-Item -Path $appsettingsFile.FullName -Destination "${{ inputs.project-folder-path }}" -Force
+      #       Copy-Item -Path $appsettingsFile.FullName -Destination "${{ needs.pre-deploy.outputs.project-folder-path }}" -Force
       #     }
 
       - name: Start new container (docker-compose up -force build)
-        run: docker compose --file "${{ inputs.project-folder-path}}/installation-files/docker-files/${{ inputs.docker-compose-file-name }}" up -d --build
+        run: docker compose --file "${{ needs.pre-deploy.outputs.project-folder-path}}/installation-files/docker-files/docker-compose.${{ inputs.project-name}}.prod.yml" up -d --build
 
     #   - name: Clean up unused containers & images
     #     run: |
