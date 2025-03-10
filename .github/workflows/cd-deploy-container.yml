@@ -78,21 +78,51 @@ jobs:
         run: |
           echo "downloaded-name-job-output: ${{ needs.download-release.outputs.downloaded-name-job-output }}"
 
+
       # ********** Build new image & run new container **********
-      #   - name: Curl backup endpoint (to service Api)
-      #     run: curl -X POST https://api.scout-camp.io/backup
 
       - name: Stop existing container(s)
-        run: docker compose --file "${{ inputs.project-folder-path}}/docker-files/${{ inputs.docker-compose-file-name }}" down
+        run: docker compose --file "${{ inputs.project-folder-path}}/installation-files/docker-files/${{ inputs.docker-compose-file-name }}" down
         # 'continue-on-error' in case of first time installation & there are no 'docker-files' yet
         continue-on-error: true
+
+      # - name: Backup old env/appsettings files
+      #   run: |
+      #     $envFiles = Get-ChildItem -Path "${{ inputs.project-folder-path }}" -Filter "*.env" -Recurse
+      #     $appsettingsFiles = Get-ChildItem -Path "${{ inputs.project-folder-path }}" -Filter "appsettings*.json" -Recurse
+
+      #     $backupFolder = "${{ inputs.project-folder-path }}/installation-files/env-file-backup"
+      #     New-Item -Path $backupFolder -ItemType Directory -Force
+
+      #     foreach ($envFile in $envFiles) {
+      #       Copy-Item -Path $envFile.FullName -Destination $backupFolder -Force
+      #     }
+
+      #     foreach ($appsettingsFile in $appsettingsFiles) {
+      #       Copy-Item -Path $appsettingsFile.FullName -Destination $backupFolder -Force
+      #     }
 
       - name: Overwrite old build/publish & docker files with new release files
         run: |
           Copy-Item -Path "${{ inputs.project-folder-path }}/releases/${{ needs.download-release.outputs.downloaded-name-job-output }}/*" -Destination "${{ inputs.project-folder-path }}/" -r -Force
 
+      # - name: Restore old env/appsettings files
+      #   run: |
+      #     $backupFolder = "${{ inputs.project-folder-path }}/installation-files/env-file-backup"
+
+      #     $envFiles = Get-ChildItem -Path $backupFolder -Filter "*.env" -Recurse
+      #     $appsettingsFiles = Get-ChildItem -Path $backupFolder -Filter "appsettings*.json" -Recurse
+
+      #     foreach ($envFile in $envFiles) {
+      #       Copy-Item -Path $envFile.FullName -Destination "${{ inputs.project-folder-path }}" -Force
+      #     }
+
+      #     foreach ($appsettingsFile in $appsettingsFiles) {
+      #       Copy-Item -Path $appsettingsFile.FullName -Destination "${{ inputs.project-folder-path }}" -Force
+      #     }
+
       - name: Start new container (docker-compose up -force build)
-        run: docker compose --file "${{ inputs.project-folder-path}}/docker-files/${{ inputs.docker-compose-file-name }}" up -d --build
+        run: docker compose --file "${{ inputs.project-folder-path}}/installation-files/docker-files/${{ inputs.docker-compose-file-name }}" up -d --build
 
     #   - name: Clean up unused containers & images
     #     run: |
