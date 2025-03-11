@@ -18,6 +18,11 @@ on:
         description: "Name of the project"
         type: string
         required: true
+    
+    outputs:
+      release-file:
+        description: "Name of the release file"
+        value: ${{ jobs.cd-build-dotnet.outputs.release-file }}
 
 jobs:
   cd-build-dotnet:
