@@ -122,6 +122,10 @@ jobs:
           $envFiles = Get-ChildItem -Path "${{ needs.pre-deploy.outputs.project-folder-path }}" -Filter "*.env" -Recurse
           $appsettingsFiles = Get-ChildItem -Path "${{ needs.pre-deploy.outputs.project-folder-path }}" -Filter "appsettings*.json" -Recurse
 
+          # Log 'appsettings.Docker.json' content
+          $appsettingsDockerFile = Get-Content -Path "${{ needs.pre-deploy.outputs.project-folder-path }}/installation-files/publish/appsettings.Docker.json"
+          echo "appsettings.Docker.json (publish): $appsettingsDockerFile"
+
           $backupFolder = "${{ needs.pre-deploy.outputs.project-folder-path }}/installation-files/env-file-backup"
           New-Item -Path $backupFolder -ItemType Directory -Force
 
@@ -133,8 +137,20 @@ jobs:
             Copy-Item -Path $appsettingsFile.FullName -Destination $backupFolder -Force
           }
 
+          # Log 'appsettings.Docker.json' content
+          $appsettingsDockerFile = Get-Content -Path "${{ needs.pre-deploy.outputs.project-folder-path }}/installation-files/env-file-backup/appsettings.Docker.json"
+          echo "appsettings.Docker.json (backup): $appsettingsDockerFile"
+
       - name: Overwrite old build/publish & docker files with new release files
         run: |
+          # Log 'appsettings.Docker.json' content
+          $appsettingsDockerFile = Get-Content -Path "${{ needs.pre-deploy.outputs.project-folder-path }}/installation-files/env-file-backup/appsettings.Docker.json"
+          echo "appsettings.Docker.json (backup): $appsettingsDockerFile"
+
+          # Log 'appsettings.Docker.json' content
+          $appsettingsDockerFile = Get-Content -Path "${{ needs.pre-deploy.outputs.project-folder-path }}/installation-files/publish/appsettings.Docker.json"
+          echo "appsettings.Docker.json (publish): $appsettingsDockerFile"
+
           Copy-Item -Path "${{ needs.pre-deploy.outputs.project-folder-path }}/installation-files/releases/${{ needs.download-release.outputs.downloaded-name-job-output }}/*" -Destination "${{ needs.pre-deploy.outputs.project-folder-path }}/installation-files/" -r -Force
 
       - name: Restore old env/appsettings files
