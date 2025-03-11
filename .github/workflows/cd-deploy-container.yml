@@ -135,7 +135,7 @@ jobs:
 
       - name: Overwrite old build/publish & docker files with new release files
         run: |
-          Copy-Item -Path "${{ needs.pre-deploy.outputs.project-folder-path }}/releases/${{ needs.download-release.outputs.downloaded-name-job-output }}/*" -Destination "${{ needs.pre-deploy.outputs.project-folder-path }}/" -r -Force
+          Copy-Item -Path "${{ needs.pre-deploy.outputs.project-folder-path }}/installation-files/releases/${{ needs.download-release.outputs.downloaded-name-job-output }}/*" -Destination "${{ needs.pre-deploy.outputs.project-folder-path }}/installation-files/" -r -Force
 
       # - name: Restore old env/appsettings files
       #   run: |
