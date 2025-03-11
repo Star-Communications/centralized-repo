@@ -50,10 +50,13 @@ jobs:
     outputs:
       project-folder-path: ${{ steps.set-output-vars.outputs.project-folder-path }}
 
+    defaults:
+      run:
+        shell: pwsh # use powershell as default shell for all steps
+
     steps:
       - name: Set output variables for next job (depending on the runner's OS)
         id: set-output-vars
-        shell: pwsh
         run: |
           if ("${{ runner.os }}" -eq 'Linux') {
             $projFolderPath = "/home/${{ inputs.linux-user }}/STAR-COM/${{ inputs.project-name }}"
