@@ -119,8 +119,8 @@ jobs:
 
       - name: Backup old env/appsettings files
         run: |
-          $envFiles = Get-ChildItem -Path "${{ needs.pre-deploy.outputs.project-folder-path }}" -Filter "*.env" -Recurse
-          $appsettingsFiles = Get-ChildItem -Path "${{ needs.pre-deploy.outputs.project-folder-path }}" -Filter "appsettings*.json" -Recurse
+          $envFiles = Get-ChildItem -Path "${{ needs.pre-deploy.outputs.project-folder-path }}/installation-files/dist" -Filter "*.env" -Recurse
+          $appsettingsFiles = Get-ChildItem -Path "${{ needs.pre-deploy.outputs.project-folder-path }}/installation-files/publish" -Filter "appsettings*.json" -Recurse
 
           # Log 'appsettings.Docker.json' content
           $appsettingsDockerFile = Get-Content -Path "${{ needs.pre-deploy.outputs.project-folder-path }}/installation-files/publish/appsettings.Docker.json"
