@@ -117,40 +117,40 @@ jobs:
         # 'continue-on-error' in case of first time installation & there are no 'docker-files' yet
         continue-on-error: true
 
-      # - name: Backup old env/appsettings files
-      #   run: |
-      #     $envFiles = Get-ChildItem -Path "${{ needs.pre-deploy.outputs.project-folder-path }}" -Filter "*.env" -Recurse
-      #     $appsettingsFiles = Get-ChildItem -Path "${{ needs.pre-deploy.outputs.project-folder-path }}" -Filter "appsettings*.json" -Recurse
+      - name: Backup old env/appsettings files
+        run: |
+          $envFiles = Get-ChildItem -Path "${{ needs.pre-deploy.outputs.project-folder-path }}" -Filter "*.env" -Recurse
+          $appsettingsFiles = Get-ChildItem -Path "${{ needs.pre-deploy.outputs.project-folder-path }}" -Filter "appsettings*.json" -Recurse
 
-      #     $backupFolder = "${{ needs.pre-deploy.outputs.project-folder-path }}/installation-files/env-file-backup"
-      #     New-Item -Path $backupFolder -ItemType Directory -Force
+          $backupFolder = "${{ needs.pre-deploy.outputs.project-folder-path }}/installation-files/env-file-backup"
+          New-Item -Path $backupFolder -ItemType Directory -Force
 
-      #     foreach ($envFile in $envFiles) {
-      #       Copy-Item -Path $envFile.FullName -Destination $backupFolder -Force
-      #     }
+          foreach ($envFile in $envFiles) {
+            Copy-Item -Path $envFile.FullName -Destination $backupFolder -Force
+          }
 
-      #     foreach ($appsettingsFile in $appsettingsFiles) {
-      #       Copy-Item -Path $appsettingsFile.FullName -Destination $backupFolder -Force
-      #     }
+          foreach ($appsettingsFile in $appsettingsFiles) {
+            Copy-Item -Path $appsettingsFile.FullName -Destination $backupFolder -Force
+          }
 
       - name: Overwrite old build/publish & docker files with new release files
         run: |
           Copy-Item -Path "${{ needs.pre-deploy.outputs.project-folder-path }}/installation-files/releases/${{ needs.download-release.outputs.downloaded-name-job-output }}/*" -Destination "${{ needs.pre-deploy.outputs.project-folder-path }}/installation-files/" -r -Force
 
-      # - name: Restore old env/appsettings files
-      #   run: |
-      #     $backupFolder = "${{ needs.pre-deploy.outputs.project-folder-path }}/installation-files/env-file-backup"
+      - name: Restore old env/appsettings files
+        run: |
+          $backupFolder = "${{ needs.pre-deploy.outputs.project-folder-path }}/installation-files/env-file-backup"
 
-      #     $envFiles = Get-ChildItem -Path $backupFolder -Filter "*.env" -Recurse
-      #     $appsettingsFiles = Get-ChildItem -Path $backupFolder -Filter "appsettings*.json" -Recurse
+          $envFiles = Get-ChildItem -Path $backupFolder -Filter "*.env" -Recurse
+          $appsettingsFiles = Get-ChildItem -Path $backupFolder -Filter "appsettings*.json" -Recurse
 
-      #     foreach ($envFile in $envFiles) {
-      #       Copy-Item -Path $envFile.FullName -Destination "${{ needs.pre-deploy.outputs.project-folder-path }}" -Force
-      #     }
+          foreach ($envFile in $envFiles) {
+            Copy-Item -Path $envFile.FullName -Destination "${{ needs.pre-deploy.outputs.project-folder-path }}/installation-files/dist" -Force
+          }
 
-      #     foreach ($appsettingsFile in $appsettingsFiles) {
-      #       Copy-Item -Path $appsettingsFile.FullName -Destination "${{ needs.pre-deploy.outputs.project-folder-path }}" -Force
-      #     }
+          foreach ($appsettingsFile in $appsettingsFiles) {
+            Copy-Item -Path $appsettingsFile.FullName -Destination "${{ needs.pre-deploy.outputs.project-folder-path }}/installation-files/publish" -Force
+          }
 
       - name: Start new container (docker-compose up -force build)
         run: docker compose --file "${{ needs.pre-deploy.outputs.project-folder-path}}/installation-files/docker-files/docker-compose.${{ inputs.project-name}}.prod.yml" up -d --build
