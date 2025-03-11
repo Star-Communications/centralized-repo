@@ -1,0 +1,116 @@
+# Run pre-release checks before running the build release workflow
+name: cd-build-dotnet
+
+on:
+  workflow_call:
+    inputs:
+      build-runner:
+        description: "Runner to use for the build"
+        type: string
+        required: true
+
+      dotnet-version:
+        description: "Dotnet version to use for the build"
+        type: string
+        required: true
+    
+      project-name:
+        description: "Name of the project"
+        type: string
+        required: true
+
+jobs:
+  pre-build-release:
+    runs-on: ${{ inputs.build-runner }}
+
+    outputs:
+      release-file: "${{ inputs.project-name }}-${{ steps.release-drafter.outputs.name }}.zip"
+
+    defaults:
+      run:
+        shell: pwsh # use powershell as default shell for all steps
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # ********** Build .NET Project **********
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ inputs.dotnet-version }}.0.x
+        env:
+          # set 'DOTNET_INSTALL_DIR' env to fix: Exception calling "ExtractToFile" with "3" argument(s): "The process cannot access the file 'C:\ProgramFiles\dotnet\dotnet.exe' because it is being used by another process."
+          DOTNET_INSTALL_DIR: "../../_tool/.dotnet"
+
+      - name: Restore .NET dependencies
+        run: dotnet restore "./${{ inputs.project-name }}.csproj"
+
+      - name: Build .NET
+        run: dotnet build "./${{ inputs.project-name }}.csproj" --no-restore
+
+      - name: Publish .NET
+        # publish for 'all runtimes' (need to make sure .NET runtime is properly installed on target machine)
+        run: dotnet publish "./${{ inputs.project-name }}.csproj" -c Release -o ./publish --no-restore
+
+      # ********** Release Drafter **********
+      # TODO: prevent creating a release if there are no changes !!!
+      - uses: release-drafter/release-drafter@master
+        id: release-drafter
+        with:
+          publish: true
+          commitish: master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # ********** Prepare release folder & zip it **********
+      - name: Create release folder
+        run: New-Item -ItemType Directory -Force -Path "./${{ inputs.project-name }}-${{ steps.release-drafter.outputs.name }}"
+
+      - name: Copy .NET publish folder to release folder
+        run: mv "./publish" "./${{ inputs.project-name }}-${{ steps.release-drafter.outputs.name }}/"
+        # run: cp -r "./publish" "./auth-server-${{ steps.release-drafter.outputs.name }}/"
+
+      - name: Copy docker files (excluding dev) to release folder
+        run: |
+          if ("${{ runner.os }}" -eq 'Linux') {
+            # 'rsync' is not a built-in command in Windows PowerShell
+            rsync -va --exclude="*.dev*" "./docker-files" "./${{ inputs.project-name }}-${{ steps.release-drafter.outputs.name }}/"
+          }
+          else {
+            # '-Exclude' is not a valid option for the cp command on Linux.
+            cp -r "./docker-files" "./${{ inputs.project-name }}-${{ steps.release-drafter.outputs.name }}/" -Exclude "*.dev*"
+          }
+
+      - name: Zip release folder
+        # use /* in 'src path' to zip only the content of the folder, not the folder itself (avoid double folder in zip)
+        run: Compress-Archive -Path "./${{ inputs.project-name }}-${{ steps.release-drafter.outputs.name }}/*" -DestinationPath "./${{ inputs.project-name }}-${{ steps.release-drafter.outputs.name }}.zip"
+
+        # DON'T NEED THIS ANYMORE, AS WE mv INSTEAD cp IN STEP ABOVE
+#     - name: Delete unzipped release folder
+#       run: Remove-Item -Path "./${{ inputs.project-name }}-${{ steps.release-drafter.outputs.name }}" -Recurse -Force
+
+      # ********** Upload zipped release to Artifact **********
+
+      # upload release to Artifact only if running on 'ubuntu-latest', so that it can be used in next job after 'ubuntu-latest' machine is shut down
+      - name: Upload release to Artifact (only if running on 'ubuntu-latest')
+        if: ${{ inputs.build-runner == 'ubuntu-latest' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: "auth-server-${{ steps.release-drafter.outputs.name }}.zip"
+          path: "./auth-server-${{ steps.release-drafter.outputs.name }}.zip"
+          retention-days: 5 # delete artifact after 10 days
+          if-no-files-found: error
+
+      #  if build is running on our custom runner, move the release folder to 'temp/uploads' folder
+      - name: Move release folder to 'temp/uploads' folder
+        if: ${{ inputs.build-runner != 'ubuntu-latest' }}
+        run: |
+          # STEP 1: Create "temp/uploads" folder if it doesn't exist
+          if (!(Test-Path -Path "./temp/uploads")) {
+            New-Item -ItemType Directory -Force -Path "./temp/uploads"
+          }
+
+          # STEP 2: Move release folder to "temp/uploads" folder
+          mv "./auth-server-${{ steps.release-drafter.outputs.name }}.zip" "./temp/uploads/auth-server-${{ steps.release-drafter.outputs.name }}.zip"
