@@ -86,7 +86,7 @@ jobs:
       s3-prefix: ${{ inputs.project-name }}
       # <condition> && <true-value> || <false-value>
       s3-obj-filter: ${{ contains(inputs.target-version, 'latest') && ' ' || inputs.target-version }}
-      download-path: "${{ needs.pre-deploy.outputs.project-folder-path }}/releases"
+      download-path: "${{ needs.pre-deploy.outputs.project-folder-path }}/installation-files/releases"
       unzip-file: true
     secrets:
       AWS_ROLE_TO_ASSUME: ${{ secrets.AWS_ROLE_TO_ASSUME }}
