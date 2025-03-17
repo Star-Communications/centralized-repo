@@ -103,8 +103,8 @@ jobs:
         if: ${{ inputs.build-runner == 'ubuntu-latest' }}
         uses: actions/upload-artifact@v4
         with:
-          name: "auth-server-${{ steps.release-drafter.outputs.name }}.zip"
-          path: "./auth-server-${{ steps.release-drafter.outputs.name }}.zip"
+          name: "${{ inputs.project-name }}-${{ steps.release-drafter.outputs.name }}.zip"
+          path: "./${{ inputs.project-name }}-${{ steps.release-drafter.outputs.name }}.zip"
           retention-days: 5 # delete artifact after 10 days
           if-no-files-found: error
 
@@ -118,4 +118,4 @@ jobs:
           }
 
           # STEP 2: Move release folder to "temp/uploads" folder
-          mv "./auth-server-${{ steps.release-drafter.outputs.name }}.zip" "./temp/uploads/auth-server-${{ steps.release-drafter.outputs.name }}.zip"
+          mv "./${{ inputs.project-name }}-${{ steps.release-drafter.outputs.name }}.zip" "./temp/uploads/${{ inputs.project-name }}-${{ steps.release-drafter.outputs.name }}.zip"
