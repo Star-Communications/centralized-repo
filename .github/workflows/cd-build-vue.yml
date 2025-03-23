@@ -12,7 +12,7 @@ on:
       node-version:
         description: "node version to use for the build"
         type: string
-        required: true
+        required: false
         default: "16.x"
 
       project-name:

@@ -34,6 +34,11 @@ on:
         type: string
         required: true
 
+      project-bundle-name:
+        description: "Name of the project bundle"
+        type: string
+        required: true
+
       # if path to downloaded release is "C:\actions-runner\_work\MyProj\downloads\s3\my-proj\my-proj-v0.1.29-latest",
       # then "download-release.outputs.downloaded-name-job-output" = "my-proj-v0.1.29-latest"
 
@@ -93,10 +98,9 @@ jobs:
     # the job returns the following outputs:
     #   downloaded-name-job-output:
 
-  
   deploy-container:
     runs-on: ${{ inputs.runs-on }}
-    
+
     needs: [pre-deploy, download-release]
 
     defaults:
@@ -107,7 +111,6 @@ jobs:
       - name: Log 'download-release' job output
         run: |
           echo "downloaded-name-job-output: ${{ needs.download-release.outputs.downloaded-name-job-output }}"
-
 
       # ********** Build new image & run new container **********
       # "docker-compose.auth-server.prod.yml"
