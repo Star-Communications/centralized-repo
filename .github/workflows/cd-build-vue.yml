@@ -1,0 +1,126 @@
+# Run pre-release checks before running the build release workflow
+name: cd-build-vue
+
+on:
+  workflow_call:
+    inputs:
+      build-runner:
+        description: "Runner to use for the build"
+        type: string
+        required: true
+
+      node-version:
+        description: "node version to use for the build"
+        type: string
+        required: true
+        default: "16.x"
+
+      project-name:
+        description: "Name of the project"
+        type: string
+        required: true
+
+    outputs:
+      release-file:
+        description: "Name of the release file"
+        value: ${{ jobs.cd-build-vue.outputs.release-file }}
+
+jobs:
+  cd-build-vue:
+    runs-on: ${{ inputs.build-runner }}
+
+    outputs:
+      release-file: "${{ inputs.project-name }}-${{ steps.release-drafter.outputs.name }}.zip"
+
+    defaults:
+      run:
+        shell: pwsh # use powershell as default shell for all steps
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # ********** Build Vue Project **********
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ inputs.node-version }}
+          cache: "npm"
+          # need to specify the path to the package-lock.json file to ensure the cache is invalidated when the lockfile changes
+          cache-dependency-path: ./package-lock.json
+
+      # TODO: optimize this step by caching the node_modules folder
+      - name: Build VUE
+        run: |
+          npm ci
+          npm run build
+          npm run build-docker
+
+      # ********** Release Drafter **********
+      # TODO: prevent creating a release if there are no changes !!!
+      - uses: release-drafter/release-drafter@master
+        id: release-drafter
+        with:
+          publish: true
+          commitish: master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+          # ********** Prepare release folder & zip it **********
+      - name: Create release folder
+        run: mkdir "./${{inputs.project-name}}-${{ steps.release-drafter.outputs.name }}"
+
+      - name: Copy 'web.config' to 'dist' folder
+        shell: pwsh
+        run: |
+          if ("${{ runner.os }}" -eq 'Linux') {
+            cp "./web.config" "./dist/" -f
+            cp "./web.config" "./dist-docker/" -f
+          }
+          else {
+            cp "./web.config" "./dist/" -Force
+            cp "./web.config" "./dist-docker/" -Force
+          }
+
+      - name: Copy 'dist' build folder to release folder
+        run: |
+          cp -r "./dist" "./${{inputs.project-name}}-${{ steps.release-drafter.outputs.name }}/"
+          cp -r "./dist-docker" "./${{inputs.project-name}}-${{ steps.release-drafter.outputs.name }}/"
+
+      - name: Copy docker files (excluding dev) to release folder
+        run: |
+          if ("${{ runner.os }}" -eq 'Linux') {
+            # 'rsync' is not a built-in command in Windows PowerShell
+            rsync -va --exclude="*.dev*" "./docker-files" "./${{inputs.project-name}}-${{ steps.release-drafter.outputs.name }}/"
+          }
+          else {
+            # '-Exclude' is not a valid option for the cp command on Linux.
+            cp -r "./docker-files" "./${{inputs.project-name}}-${{ steps.release-drafter.outputs.name }}/" -Exclude "*.dev*"
+          }
+
+      - name: Zip release folder
+        run: Compress-Archive -Path "./${{inputs.project-name}}-${{ steps.release-drafter.outputs.name }}/*" -DestinationPath "./tracker-cms-${{ steps.release-drafter.outputs.name }}.zip"
+
+      # ********** Upload zipped release to Artifact **********
+
+      - name: Upload release to Artifact
+        # upload to artifact only if running on 'ubuntu-latest'
+        if: ${{ inputs.build-runner == 'ubuntu-latest' }}
+        uses: actions/upload-artifact@v3
+        with:
+          name: "${{inputs.project-name}}-${{ steps.release-drafter.outputs.name }}.zip"
+          path: "./${{inputs.project-name}}-${{ steps.release-drafter.outputs.name }}.zip"
+          retention-days: 1
+          if-no-files-found: error
+
+      - name: Move release folder to 'temp/uploads' folder
+        if: ${{ inputs.build-runner != 'ubuntu-latest' }}
+        run: |
+          # STEP 1: Create "temp/uploads" folder if it doesn't exist
+          if (!(Test-Path -Path "./temp/uploads")) {
+            New-Item -ItemType Directory -Force -Path "./temp/uploads"
+          }
+
+          # STEP 2: Move release folder to "temp/uploads" folder
+          mv "./${{inputs.project-name}}-${{ steps.release-drafter.outputs.name }}.zip" "./temp/uploads/${{inputs.project-name}}-${{ steps.release-drafter.outputs.name }}.zip"
