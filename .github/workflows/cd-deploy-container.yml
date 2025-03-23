@@ -64,10 +64,10 @@ jobs:
         id: set-output-vars
         run: |
           if ("${{ runner.os }}" -eq 'Linux') {
-            $projFolderPath = "/home/${{ inputs.linux-user }}/STAR-COM/${{ inputs.project-name }}"
+            $projFolderPath = "/home/${{ inputs.linux-user }}/STAR-COM/${{ inputs.project-bundle-name }}/${{ inputs.project-name }}"
           }
           else {
-            $projFolderPath = "C:/STAR-COM/${{ inputs.project-name }}"
+            $projFolderPath = "C:/STAR-COM/${{ inputs.project-bundle-name }}/${{ inputs.project-name }}"
           }
 
           echo "project-folder-path=$projFolderPath" >> $env:GITHUB_OUTPUT
@@ -76,10 +76,10 @@ jobs:
       - name: Ensure folder structure exists (if not already)
         run: |
           if ("${{ runner.os }}" -eq 'Linux') {
-            mkdir -p "/home/${{ inputs.linux-user }}/STAR-COM/${{ inputs.project-name }}/installation-files"
+            mkdir -p "/home/${{ inputs.linux-user }}/STAR-COM/${{ inputs.project-bundle-name }}/${{ inputs.project-name }}/installation-files"
           }
           else {
-            mkdir -p "C:/STAR-COM/${{ inputs.project-name }}/installation-files"
+            mkdir -p "C:/STAR-COM/${{ inputs.project-bundle-name }}/${{ inputs.project-name }}/installation-files"
           }
 
   download-release:
