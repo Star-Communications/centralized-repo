@@ -1,0 +1,37 @@
+name: Test .NET Application
+
+on:
+  workflow_dispatch:
+    inputs:
+      dotnet-version:
+        description: "Specify the .NET version to use"
+        required: true
+        default: "8.0.x"
+
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+    branches:
+      - main
+      - master
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: ${{ inputs.dotnet-version }}
+
+      - name: Restore dependencies
+        run: dotnet restore
+
+      - name: Run tests
+        run: dotnet test --no-build --configuration Release --verbosity normal
