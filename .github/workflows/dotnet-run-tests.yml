@@ -9,14 +9,6 @@ on:
         required: true
         default: "8.0.x"
 
-  workflow_dispatch:
-    inputs:
-      dotnet-version:
-        type: string
-        description: "Specify the .NET version to use"
-        required: true
-        default: "8.0.x"
-
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
