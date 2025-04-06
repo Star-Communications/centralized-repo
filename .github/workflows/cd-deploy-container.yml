@@ -75,12 +75,20 @@ jobs:
 
       - name: Ensure folder structure exists (if not already)
         run: |
-          if ("${{ runner.os }}" -eq 'Linux') {
-            mkdir -p "/home/${{ inputs.linux-user }}/STAR-COM/${{ inputs.project-bundle-name }}/${{ inputs.project-name }}/installation-files"
-          }
-          else {
-            mkdir -p "C:/STAR-COM/${{ inputs.project-bundle-name }}/${{ inputs.project-name }}/installation-files"
-          }
+            $linuxPath = "/home/${{ inputs.linux-user }}/STAR-COM/${{ inputs.project-bundle-name }}/${{ inputs.project-name }}/installation-files"
+
+            $windowsPath = "C:/STAR-COM/${{ inputs.project-bundle-name }}/${{ inputs.project-name }}/installation-files"
+
+            if ("${{ runner.os }}" -eq 'Linux') {
+              if (-Not (Test-Path $linuxPath)) {
+                mkdir -p $linuxPath
+              }
+            }
+            else {
+              if (-Not (Test-Path $windowsPath)) {
+                mkdir -p $windowsPath
+              }
+            }
 
   download-release:
     needs: pre-deploy
