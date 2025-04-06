@@ -13,12 +13,12 @@ on:
         description: "Dotnet version to use for the build"
         type: string
         required: true
-    
+
       project-name:
         description: "Name of the project"
         type: string
         required: true
-    
+
     outputs:
       release-file:
         description: "Name of the release file"
@@ -30,6 +30,7 @@ jobs:
 
     outputs:
       release-file: "${{ inputs.project-name }}-${{ steps.release-drafter.outputs.name }}.zip"
+      project-folder-path: "${{ steps.set-project-folder-path.outputs.projectFolderPath }}"
 
     defaults:
       run:
@@ -41,6 +42,23 @@ jobs:
           fetch-depth: 0
 
       # ********** Build .NET Project **********
+
+      - name: Set project folder path
+        id: set-project-folder-path
+        run: |
+          if (Test-Path "./${{ inputs.project-name }}/${{ inputs.project-name }}.csproj") {
+            $projectFolderPath = "./${{ inputs.project-name }}"
+          }
+          elseif (Test-Path "./${{ inputs.project-name }}.csproj") {
+            $projectFolderPath = "."
+          }
+          else {
+            throw "Project folder not found"
+          }
+          # Set the path to the project folder as an output variable
+          echo "projectFolderPath=$projectFolderPath" >> $env:GITHUB_OUTPUT
+          echo "projectFolderPath=$projectFolderPath"
+
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
@@ -50,14 +68,14 @@ jobs:
           DOTNET_INSTALL_DIR: "../../_tool/.dotnet"
 
       - name: Restore .NET dependencies
-        run: dotnet restore "./${{ inputs.project-name }}.csproj"
+        run: dotnet restore "${{ steps.set-project-folder-path.outputs.projectFolderPath }}/${{inputs.project-name}}.csproj" --no-build
 
       - name: Build .NET
-        run: dotnet build "./${{ inputs.project-name }}.csproj" --no-restore
+        run: dotnet build "${{ steps.set-project-folder-path.outputs.projectFolderPath }}/${{inputs.project-name}}.csproj" --no-restore
 
       - name: Publish .NET
         # publish for 'all runtimes' (need to make sure .NET runtime is properly installed on target machine)
-        run: dotnet publish "./${{ inputs.project-name }}.csproj" -c Release -o ./publish --no-restore
+        run: dotnet publish "${{ steps.set-project-folder-path.outputs.projectFolderPath }}/${{inputs.project-name}}.csproj" -c Release -o ./publish --no-restore
 
       # ********** Release Drafter **********
       # TODO: prevent creating a release if there are no changes !!!
@@ -75,17 +93,17 @@ jobs:
 
       - name: Copy .NET publish folder to release folder
         run: mv "./publish" "./${{ inputs.project-name }}-${{ steps.release-drafter.outputs.name }}/"
-        # run: cp -r "./publish" "./auth-server-${{ steps.release-drafter.outputs.name }}/"
+        # run: cp -r "./publish" "./projectName-${{ steps.release-drafter.outputs.name }}/"
 
       - name: Copy docker files (excluding dev) to release folder
         run: |
           if ("${{ runner.os }}" -eq 'Linux') {
             # 'rsync' is not a built-in command in Windows PowerShell
-            rsync -va --exclude="*.dev*" "./docker-files" "./${{ inputs.project-name }}-${{ steps.release-drafter.outputs.name }}/"
+            rsync -va --exclude="*.dev*" "${{steps.set-project-folder-path.outputs.projectFolderPath}}/docker-files" "./${{ inputs.project-name }}-${{ steps.release-drafter.outputs.name }}/"
           }
           else {
             # '-Exclude' is not a valid option for the cp command on Linux.
-            cp -r "./docker-files" "./${{ inputs.project-name }}-${{ steps.release-drafter.outputs.name }}/" -Exclude "*.dev*"
+            cp -r "${{steps.set-project-folder-path.outputs.projectFolderPath}}/docker-files" "./${{ inputs.project-name }}-${{ steps.release-drafter.outputs.name }}/" -Exclude "*.dev*"
           }
 
       - name: Zip release folder
@@ -93,8 +111,8 @@ jobs:
         run: Compress-Archive -Path "./${{ inputs.project-name }}-${{ steps.release-drafter.outputs.name }}/*" -DestinationPath "./${{ inputs.project-name }}-${{ steps.release-drafter.outputs.name }}.zip"
 
         # DON'T NEED THIS ANYMORE, AS WE mv INSTEAD cp IN STEP ABOVE
-#     - name: Delete unzipped release folder
-#       run: Remove-Item -Path "./${{ inputs.project-name }}-${{ steps.release-drafter.outputs.name }}" -Recurse -Force
+      # - name: Delete unzipped release folder
+      #   run: Remove-Item -Path "./${{ inputs.project-name }}-${{ steps.release-drafter.outputs.name }}" -Recurse -Force
 
       # ********** Upload zipped release to Artifact **********
 
