@@ -1,0 +1,9 @@
+repos:
+  - repo: https://github.com/your-username/centralized-repo
+    rev: main # Use the branch or tag where the script is located
+    hooks:
+      - id: custom-formatter
+        name: Custom Pre-Commit Formatter
+        entry: python scripts/pre_commit_formatter.py
+        language: system
+        files: ".*" # Apply to all files
