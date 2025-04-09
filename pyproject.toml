@@ -21,4 +21,4 @@ dependencies = [
 ]
 
 [project.scripts]
-custom-formatter = "hooks.custom_formatter:main"
+custom-formatter = "hooks.custom_formatter:master"
