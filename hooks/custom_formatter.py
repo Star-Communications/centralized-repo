@@ -25,18 +25,22 @@ def format_file(file_path):
         except subprocess.CalledProcessError as e:
             print(f"Error formatting {file_path}: {e}")
             sys.exit(1)
+    else:
+        # Add logic to format the file based on its type
+        print(f"Formatting file: {file_path}")
+        # Example: Add specific formatting rules here
+        # ...
 
 def main():
-    # Get the list of staged files
-    result = subprocess.run("git diff --cached --name-only", shell=True, capture_output=True, text=True)
-    if result.returncode != 0:
-        print("Failed to get staged files.")
+    if len(sys.argv) < 2:
+        print("No files provided for formatting.")
         sys.exit(1)
 
-    staged_files = result.stdout.strip().split("\n")
-    for file_path in staged_files:
-        if os.path.isfile(file_path):
+    for file_path in sys.argv[1:]:
+        if os.path.exists(file_path):
             format_file(file_path)
+        else:
+            print(f"File not found: {file_path}")
 
 if __name__ == "__main__":
     main()
