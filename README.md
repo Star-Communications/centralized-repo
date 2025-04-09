@@ -15,19 +15,15 @@ This repository provides a custom pre-commit formatter script that can be used a
 1. **Add `.pre-commit-config.yaml`**:
    Copy the following configuration file into the root of your target repository:
 
-   ```yaml
-   repos:
-     - repo: https://github.com/your-username/centralized-repo
-       rev: main # Use the branch or tag where the script is located
-       hooks:
-         - id: custom-formatter
-           name: Custom Pre-Commit Formatter
-           entry: python scripts/pre_commit_formatter.py
-           language: system
-           files: ".*" # Apply to all files
-   ```
+```yaml
+repos:
+  - repo: https://github.com/your-username/centralized-pre-commit-hooks
+    rev: v1.0.0 # Use the appropriate tag or commit hash
+    hooks:
+      - id: custom-formatter
+```
 
-   Replace `https://github.com/your-username/centralized-repo` with the actual URL of this repository.
+Replace `https://github.com/your-username/centralized-repo` with the actual URL of this repository.
 
 2. **Install Pre-Commit**:
    Install the `pre-commit` tool if it is not already installed:
@@ -58,7 +54,3 @@ Ensure the following tools are installed on your system:
 - `Prettier` (for `.vue`, `.js`, `.html`, and `.css` files)
 - `yamllint` (for `.yml` files)
 - `xmllint` (for `.xml` files)
-
-## Updating the Formatter Script
-
-If you update the `pre_commit_formatter.py` script in this repository, ensure you update the `rev` field in the `.pre-commit-config.yaml` file of the target repositories to point to the latest commit or tag.

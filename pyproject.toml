@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "centralized-pre-commit-hooks"
+version = "0.1.0"
+description = "A collection of custom pre-commit hooks for code formatting."
+authors = [
+    { name = "Your Name", email = "your.email@example.com" }
+]
+license = { text = "MIT" }
+readme = "README.md"
+requires-python = ">=3.6"
+dependencies = [
+    "pre-commit",
+    "black",
+    "prettier",
+    "yamllint",
+    # Add other dependencies as needed
+]
+
+[project.scripts]
+custom-formatter = "hooks.custom_formatter:main"
