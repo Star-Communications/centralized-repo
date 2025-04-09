@@ -1,5 +1,6 @@
+# .pre-commit-hooks.yaml
 - id: formatter-hook
   name: Formatter Hook
-  entry: echo "Running example hook"
-  language: system
-  files: .*
+  entry: python scripts/pre_commit_formatter.py
+  language: python
+  files: ".*"
