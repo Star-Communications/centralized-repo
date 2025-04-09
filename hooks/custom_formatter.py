@@ -31,6 +31,7 @@ def format_file(file_path):
         # ...
 
 def main():
+    print("Custom formatter script started.")
     if len(sys.argv) < 2:
         print("No files provided for formatting.")
         sys.exit(1)
@@ -40,6 +41,7 @@ def main():
             format_file(file_path)
         else:
             print(f"File not found: {file_path}")
+    print("Custom formatter script completed.")
 
 if __name__ == "__main__":
     main()
