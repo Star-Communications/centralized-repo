@@ -7,7 +7,7 @@ name = "centralized-pre-commit-hooks"
 version = "0.1.0"
 description = "A collection of custom pre-commit hooks for code formatting."
 authors = [
-    { name = "Your Name", email = "your.email@example.com" }
+    { name = "StarCom", email = "devteam@star-communications.net" }
 ]
 license = { text = "MIT" }
 readme = "README.md"
