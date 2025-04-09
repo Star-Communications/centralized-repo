@@ -2,6 +2,6 @@
 - id: custom-formatter
   name: Custom Formatter
   description: Formats various code files according to standard rules.
-  entry: python3 hooks/custom_formatter.py
+  entry: python hooks/custom_formatter.py
   language: system
   files: \.(cs|csproj|vue|js|html|css|yml|yaml|xml)$
