@@ -32,6 +32,7 @@ def format_file(file_path):
 
 def main():
     print("Custom formatter script started.")
+    print("Files to format:", sys.argv[1:])  # Debugging output
     if len(sys.argv) < 2:
         print("No files provided for formatting.")
         sys.exit(1)
