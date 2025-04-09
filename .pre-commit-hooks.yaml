@@ -1,0 +1,5 @@
+- id: formatter-hook
+  name: Formatter Hook
+  entry: echo "Running example hook"
+  language: system
+  files: .*

@@ -1,6 +1,6 @@
 repos:
   - repo: https://github.com/your-username/centralized-repo
-    rev: main # Use the branch or tag where the script is located
+    rev: master # Use the branch or tag where the script is located
     hooks:
       - id: custom-formatter
         name: Custom Pre-Commit Formatter
