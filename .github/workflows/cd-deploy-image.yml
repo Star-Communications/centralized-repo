@@ -1,14 +1,10 @@
-name: cd-deploy-container
+name: cd-deploy-image
 
 on:
   workflow_call:
     secrets:
       AWS_ROLE_TO_ASSUME:
         description: "ARN of the AWS role to assume"
-        required: true
-
-      GHCR_PAT:
-        description: "GitHub Container Registry Personal Access Token"
         required: true
 
     inputs:
@@ -84,7 +80,7 @@ jobs:
         run: |
           # Fetch the latest version from S3
           $latestVersion = aws s3 ls "s3://${{ inputs.s3-bucket }}/${{ inputs.project-name }}/" --recursive | `
-            Sort-Object -Property LastWriteTime -Descending | `
+            Sort-Object -Property LastWriteTime -Descending | `   #TODO:change to to be sorted by name (version number)
             Select-Object -First 1 | `
             ForEach-Object { $_.Key -replace '.*/', '' }
 

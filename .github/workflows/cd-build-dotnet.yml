@@ -29,7 +29,7 @@ jobs:
     runs-on: ${{ inputs.build-runner }}
 
     outputs:
-      release-file: "${{ inputs.project-name }}-${{ steps.release-drafter.outputs.name }}.zip"
+      release-file: "${{ inputs.project-name }}-${{ steps.tag-release.outputs.tag }}.zip"
       project-folder-path: "${{ steps.set-project-folder-path.outputs.projectFolderPath }}"
 
     defaults:
@@ -77,42 +77,42 @@ jobs:
         # publish for 'all runtimes' (need to make sure .NET runtime is properly installed on target machine)
         run: dotnet publish "${{ steps.set-project-folder-path.outputs.projectFolderPath }}/${{inputs.project-name}}.csproj" -c Release -o ./publish --no-restore
 
-      # ********** Release Drafter **********
+      # ********** Release Tag **********
       # TODO: prevent creating a release if there are no changes !!!
-      - uses: release-drafter/release-drafter@master
-        id: release-drafter
+      - name: Github Tag Bump
+        uses: anothrNick/github-tag-action@1.71.0 #   https://github.com/marketplace/actions/github-tag-bump
+        id: tag-release
         with:
-          publish: true
-          commitish: master
-        env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          WITH_V: true
+          # create_annotated_tag: true
 
       # ********** Prepare release folder & zip it **********
       - name: Create release folder
-        run: New-Item -ItemType Directory -Force -Path "./${{ inputs.project-name }}-${{ steps.release-drafter.outputs.name }}"
+        run: New-Item -ItemType Directory -Force -Path "./${{ inputs.project-name }}-${{ steps.tag-release.outputs.tag }}"
 
       - name: Copy .NET publish folder to release folder
-        run: mv "./publish" "./${{ inputs.project-name }}-${{ steps.release-drafter.outputs.name }}/"
-        # run: cp -r "./publish" "./projectName-${{ steps.release-drafter.outputs.name }}/"
+        run: mv "./publish" "./${{ inputs.project-name }}-${{ steps.tag-release.outputs.tag }}/"
+        # run: cp -r "./publish" "./projectName-${{ steps.tag-release.outputs.tag }}/"
 
       - name: Copy docker files (excluding dev) to release folder
         run: |
           if ("${{ runner.os }}" -eq 'Linux') {
             # 'rsync' is not a built-in command in Windows PowerShell
-            rsync -va --exclude="*.dev*" "${{steps.set-project-folder-path.outputs.projectFolderPath}}/docker-files" "./${{ inputs.project-name }}-${{ steps.release-drafter.outputs.name }}/"
+            rsync -va --exclude="*.dev*" "${{steps.set-project-folder-path.outputs.projectFolderPath}}/docker-files" "./${{ inputs.project-name }}-${{ steps.tag-release.outputs.tag }}/"
           }
           else {
             # '-Exclude' is not a valid option for the cp command on Linux.
-            cp -r "${{steps.set-project-folder-path.outputs.projectFolderPath}}/docker-files" "./${{ inputs.project-name }}-${{ steps.release-drafter.outputs.name }}/" -Exclude "*.dev*"
+            cp -r "${{steps.set-project-folder-path.outputs.projectFolderPath}}/docker-files" "./${{ inputs.project-name }}-${{ steps.tag-release.outputs.tag }}/" -Exclude "*.dev*"
           }
 
       - name: Zip release folder
         # use /* in 'src path' to zip only the content of the folder, not the folder itself (avoid double folder in zip)
-        run: Compress-Archive -Path "./${{ inputs.project-name }}-${{ steps.release-drafter.outputs.name }}/*" -DestinationPath "./${{ inputs.project-name }}-${{ steps.release-drafter.outputs.name }}.zip"
+        run: Compress-Archive -Path "./${{ inputs.project-name }}-${{ steps.tag-release.outputs.tag }}/*" -DestinationPath "./${{ inputs.project-name }}-${{ steps.tag-release.outputs.tag }}.zip"
 
         # DON'T NEED THIS ANYMORE, AS WE mv INSTEAD cp IN STEP ABOVE
       # - name: Delete unzipped release folder
-      #   run: Remove-Item -Path "./${{ inputs.project-name }}-${{ steps.release-drafter.outputs.name }}" -Recurse -Force
+      #   run: Remove-Item -Path "./${{ inputs.project-name }}-${{ steps.tag-release.outputs.tag }}" -Recurse -Force
 
       # ********** Upload zipped release to Artifact **********
 
@@ -121,8 +121,8 @@ jobs:
         if: ${{ inputs.build-runner == 'ubuntu-latest' }}
         uses: actions/upload-artifact@v4
         with:
-          name: "${{ inputs.project-name }}-${{ steps.release-drafter.outputs.name }}.zip"
-          path: "./${{ inputs.project-name }}-${{ steps.release-drafter.outputs.name }}.zip"
+          name: "${{ inputs.project-name }}-${{ steps.tag-release.outputs.tag }}.zip"
+          path: "./${{ inputs.project-name }}-${{ steps.tag-release.outputs.tag }}.zip"
           retention-days: 5 # delete artifact after 10 days
           if-no-files-found: error
 
@@ -136,4 +136,4 @@ jobs:
           }
 
           # STEP 2: Move release folder to "temp/uploads" folder
-          mv "./${{ inputs.project-name }}-${{ steps.release-drafter.outputs.name }}.zip" "./temp/uploads/${{ inputs.project-name }}-${{ steps.release-drafter.outputs.name }}.zip"
+          mv "./${{ inputs.project-name }}-${{ steps.tag-release.outputs.tag }}.zip" "./temp/uploads/${{ inputs.project-name }}-${{ steps.tag-release.outputs.tag }}.zip"

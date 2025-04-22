@@ -76,7 +76,7 @@ jobs:
 
           # STEP 2: Get S3 object order by last-modified reverse (& remove bucket subfolder (prefix) from object name)
           $ObjName = (aws s3api list-objects-v2 --bucket "${{ inputs.s3-bucket }}" --prefix "${{ inputs.s3-prefix }}" --query "reverse(sort_by(Contents[?contains(Key, '$s3ObjFilter')], &LastModified))[0].Key" --output text)
-          echo "Object name in S3: '$ObjName'"
+          echo "Object name in S3: '$ObjName'" #TODO:better change to to be sorted by name (version number)??
 
           # STEP 3: throw an error if $ObjName has no value
           if (!$ObjName -or ($ObjName -eq 'None')) {

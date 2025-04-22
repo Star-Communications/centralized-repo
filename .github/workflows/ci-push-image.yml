@@ -1,0 +1,109 @@
+name: ci-push-image
+
+on:
+  workflow_call:
+    secrets:
+      AWS_ROLE_TO_ASSUME:
+        description: "ARN of the AWS role to assume"
+        required: true
+
+    inputs:
+      runs-on:
+        description: "The type of runner(s) to use (comma separated)"
+        type: string
+        default: "ubuntu-latest"
+        required: true
+
+      api-project-name:
+        description: "Name of the API project to download from S3"
+        type: string
+        required: false
+
+      spa-project-name:
+        description: "Name of the SPA project to download from S3"
+        type: string
+        required: false
+
+      project-bundle-name:
+        description: "Name of the project bundle"
+        type: string
+        required: true
+
+# disable permissions for all scopes (except for id-token)
+permissions:
+  id-token: write
+
+jobs:
+  create-temp-folder:
+    runs-on: ${{ inputs.runs-on }}
+
+    steps:
+      - name: Create temporary folder
+        run: |
+          mkdir -p "TemporaryFolder"
+          echo "TemporaryFolder created"
+
+  download-api-release:
+    needs: create-temp-folder
+
+    uses: ./.github/workflows/download-s3.yml
+    if: ${{ inputs.api-project-name != '' }}
+    with:
+      runs-on: ${{ inputs.runs-on }}
+      s3-bucket: svc-releases-bucket
+      s3-prefix: ${{ inputs.project-name }}
+      download-path: "./TemporaryFolder"
+      unzip-file: true
+    secrets:
+      AWS_ROLE_TO_ASSUME: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+    # the job returns the following outputs:
+    #   downloaded-name-job-output:
+
+  download-spa-release:
+    needs: create-temp-folder
+
+    uses: ./.github/workflows/download-s3.yml
+    if: ${{ inputs.spa-project-name != '' }}
+    with:
+      runs-on: ${{ inputs.runs-on }}
+      s3-bucket: svc-releases-bucket
+      s3-prefix: ${{ inputs.project-name }}
+      download-path: "./TemporaryFolder"
+      unzip-file: true
+    secrets:
+      AWS_ROLE_TO_ASSUME: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+    # the job returns the following outputs:
+    #   downloaded-name-job-output:
+
+  # check-image-exists:
+  #   needs: [download-api-release, download-spa-release]
+  #   runs-on: ${{ inputs.runs-on }}
+
+  #   outputs:
+  #     image-exists: ${{ steps.check-image.outputs.image-exists }}
+
+  #   steps:
+  #     - name: Check if Docker image exists in GHCR
+  #       id: check-image
+  #       run: |
+  #         $imageName = "${{ inputs.project-name }}:${{ needs.pre-deploy.outputs.latest-version }}"
+  #         $imageExists = docker manifest inspect ghcr.io/${{ github.repository_owner }}/${imageName} > $null 2>&1
+  #         echo "image-exists=$($imageExists -eq $true)" >> $env:GITHUB_OUTPUT
+
+  build-and-push-image:
+    # needs: check-image
+    # if: needs.check-image.outputs.image-exists == 'false'
+    runs-on: ${{ inputs.runs-on }}
+
+    steps:
+      - name: Build Docker image
+        run: |
+          docker build -t ghcr.io/${{ github.repository_owner }}/${{ inputs.project-name }}:${{ needs.pre-deploy.outputs.latest-version }} \
+            "${{ needs.pre-deploy.outputs.project-folder-path }}/installation-files"
+
+      - name: Push Docker image to GHCR
+        env:
+          GHCR_PAT: ${{ secrets.GHCR_PAT }}
+        run: |
+          echo $GHCR_PAT | docker login ghcr.io -u ${{ github.repository_owner }} --password-stdin
+          docker push ghcr.io/${{ github.repository_owner }}/${{ inputs.project-name }}:${{ needs.pre-deploy.outputs.latest-version }}
