@@ -34,6 +34,18 @@ permissions:
   id-token: write
 
 jobs:
+  get-current-tag:
+    runs-on: ${{ inputs.runs-on }}
+    outputs:
+      current-tag: ${{ steps.get-tag.outputs.current-tag }}
+
+    steps:
+      - name: Get current branch tag
+        id: get-tag
+        run: |
+          tag=$(git describe --tags --exact-match 2>/dev/null || echo "latest")
+          echo "current-tag=$tag" >> $GITHUB_OUTPUT
+
   create-temp-folder:
     runs-on: ${{ inputs.runs-on }}
 
@@ -51,7 +63,7 @@ jobs:
     with:
       runs-on: ${{ inputs.runs-on }}
       s3-bucket: svc-releases-bucket
-      s3-prefix: ${{ inputs.project-name }}
+      s3-prefix: ${{ inputs.api-project-name }}
       download-path: "./TemporaryFolder"
       unzip-file: true
     secrets:
@@ -60,14 +72,14 @@ jobs:
     #   downloaded-name-job-output:
 
   download-spa-release:
-    needs: create-temp-folder
+    needs: [create-temp-folder, get-current-tag]
 
     uses: ./.github/workflows/download-s3.yml
     if: ${{ inputs.spa-project-name != '' }}
     with:
       runs-on: ${{ inputs.runs-on }}
       s3-bucket: svc-releases-bucket
-      s3-prefix: ${{ inputs.project-name }}
+      s3-prefix: ${{ inputs.spa-project-name }}
       download-path: "./TemporaryFolder"
       unzip-file: true
     secrets:
@@ -91,19 +103,17 @@ jobs:
   #         echo "image-exists=$($imageExists -eq $true)" >> $env:GITHUB_OUTPUT
 
   build-and-push-image:
-    # needs: check-image
-    # if: needs.check-image.outputs.image-exists == 'false'
+    needs: [download-api-release, download-spa-release, get-current-tag]
     runs-on: ${{ inputs.runs-on }}
 
     steps:
       - name: Build Docker image
         run: |
-          docker build -t ghcr.io/${{ github.repository_owner }}/${{ inputs.project-name }}:${{ needs.pre-deploy.outputs.latest-version }} \
-            "${{ needs.pre-deploy.outputs.project-folder-path }}/installation-files"
+          docker build -t ghcr.io/${{ github.repository_owner }}/${{ inputs.project-bundle-name }}:${{ needs.get-current-tag.outputs.current-tag }} .
 
       - name: Push Docker image to GHCR
         env:
           GHCR_PAT: ${{ secrets.GHCR_PAT }}
         run: |
           echo $GHCR_PAT | docker login ghcr.io -u ${{ github.repository_owner }} --password-stdin
-          docker push ghcr.io/${{ github.repository_owner }}/${{ inputs.project-name }}:${{ needs.pre-deploy.outputs.latest-version }}
+          docker push ghcr.io/${{ github.repository_owner }}/${{ inputs.project-bundle-name }}:${{ needs.get-current-tag.outputs.current-tag }}
