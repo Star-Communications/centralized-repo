@@ -112,7 +112,5 @@ jobs:
           docker build -t localhost:5000/${{ github.repository_owner }}/${{ inputs.project-bundle-name }}:${{ needs.get-current-tag.outputs.current-tag }} .
 
       - name: Push Docker image to local registry
-        env:
-          GHCR_PAT: ${{ secrets.GHCR_PAT }}
         run: |
           docker push localhost:5000/${{ github.repository_owner }}/${{ inputs.project-bundle-name }}:${{ needs.get-current-tag.outputs.current-tag }}
