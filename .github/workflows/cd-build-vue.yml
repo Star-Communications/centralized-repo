@@ -55,7 +55,6 @@ jobs:
         run: |
           npm ci
           npm run build
-          npm run build-docker
 
       # ********** Release Drafter **********
       # TODO: prevent creating a release if there are no changes !!!
@@ -76,28 +75,25 @@ jobs:
         run: |
           if ("${{ runner.os }}" -eq 'Linux') {
             cp "./web.config" "./dist/" -f
-            cp "./web.config" "./dist-docker/" -f
           }
           else {
             cp "./web.config" "./dist/" -Force
-            cp "./web.config" "./dist-docker/" -Force
           }
 
       - name: Copy 'dist' build folder to release folder
         run: |
           cp -r "./dist" "./${{inputs.project-name}}-${{ steps.release-drafter.outputs.name }}/"
-          cp -r "./dist-docker" "./${{inputs.project-name}}-${{ steps.release-drafter.outputs.name }}/"
 
-      - name: Copy docker files (excluding dev) to release folder
-        run: |
-          if ("${{ runner.os }}" -eq 'Linux') {
-            # 'rsync' is not a built-in command in Windows PowerShell
-            rsync -va --exclude="*.dev*" "./docker-files" "./${{inputs.project-name}}-${{ steps.release-drafter.outputs.name }}/"
-          }
-          else {
-            # '-Exclude' is not a valid option for the cp command on Linux.
-            cp -r "./docker-files" "./${{inputs.project-name}}-${{ steps.release-drafter.outputs.name }}/" -Exclude "*.dev*"
-          }
+      # - name: Copy docker files (excluding dev) to release folder
+      #   run: |
+      #     if ("${{ runner.os }}" -eq 'Linux') {
+      #       # 'rsync' is not a built-in command in Windows PowerShell
+      #       rsync -va --exclude="*.dev*" "./docker-files" "./${{inputs.project-name}}-${{ steps.release-drafter.outputs.name }}/"
+      #     }
+      #     else {
+      #       # '-Exclude' is not a valid option for the cp command on Linux.
+      #       cp -r "./docker-files" "./${{inputs.project-name}}-${{ steps.release-drafter.outputs.name }}/" -Exclude "*.dev*"
+      #     }
 
       - name: Zip release folder
         run: Compress-Archive -Path "./${{inputs.project-name}}-${{ steps.release-drafter.outputs.name }}/*" -DestinationPath "./${{inputs.project-name}}-${{ steps.release-drafter.outputs.name }}.zip"
