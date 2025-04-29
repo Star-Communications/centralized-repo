@@ -70,15 +70,15 @@ jobs:
       - name: Create release folder
         run: mkdir "./${{inputs.project-name}}-${{ steps.release-drafter.outputs.name }}"
 
-      - name: Copy 'web.config' to 'dist' folder
-        shell: pwsh
-        run: |
-          if ("${{ runner.os }}" -eq 'Linux') {
-            cp "./web.config" "./dist/" -f
-          }
-          else {
-            cp "./web.config" "./dist/" -Force
-          }
+      # - name: Copy 'web.config' to 'dist' folder
+      #   shell: pwsh
+      #   run: |
+      #     if ("${{ runner.os }}" -eq 'Linux') {
+      #       cp "./web.config" "./dist/" -f
+      #     }
+      #     else {
+      #       cp "./web.config" "./dist/" -Force
+      #     }
 
       - name: Copy 'dist' build folder to release folder
         run: |
