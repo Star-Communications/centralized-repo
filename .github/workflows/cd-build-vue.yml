@@ -35,7 +35,7 @@ jobs:
     runs-on: ${{ inputs.build-runner }}
 
     outputs:
-      release-file: "${{ inputs.project-name }}-${{ steps.tag-release.outputs.tag }}.zip"
+      release-file: "${{ inputs.project-name }}-${{ steps.release-drafter.outputs.name }}.zip"
 
     defaults:
       run:
@@ -64,18 +64,17 @@ jobs:
 
       # ********** Release Drafter **********
       # TODO: prevent creating a release if there are no changes !!!
-      - name: Github Tag Bump
-        uses: anothrNick/github-tag-action@1.71.0 # https://github.com/marketplace/actions/tag-release-on-push-action   or    https://github.com/marketplace/actions/github-tag-bump
-        id: tag-release
+      - uses: release-drafter/release-drafter@master
+        id: release-drafter
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          release_branches: ${{ github.ref_name }}
-          DEFAULT_BUMP: ${{ inputs.release-type }}
-          create_annotated_tag: true
+          publish: true
+          commitish: master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
           # ********** Prepare release folder & zip it **********
       - name: Create release folder
-        run: mkdir "./${{inputs.project-name}}-${{ steps.tag-release.outputs.tag }}"
+        run: mkdir "./${{inputs.project-name}}-${{ steps.release-drafter.outputs.name }}"
 
       - name: Copy 'web.config' to 'dist' folder
         shell: pwsh
@@ -91,22 +90,22 @@ jobs:
 
       - name: Copy 'dist' build folder to release folder
         run: |
-          cp -r "./dist" "./${{inputs.project-name}}-${{ steps.tag-release.outputs.tag }}/"
-          cp -r "./dist-docker" "./${{inputs.project-name}}-${{ steps.tag-release.outputs.tag }}/"
+          cp -r "./dist" "./${{inputs.project-name}}-${{ steps.release-drafter.outputs.name }}/"
+          cp -r "./dist-docker" "./${{inputs.project-name}}-${{ steps.release-drafter.outputs.name }}/"
 
       - name: Copy docker files (excluding dev) to release folder
         run: |
           if ("${{ runner.os }}" -eq 'Linux') {
             # 'rsync' is not a built-in command in Windows PowerShell
-            rsync -va --exclude="*.dev*" "./docker-files" "./${{inputs.project-name}}-${{ steps.tag-release.outputs.tag }}/"
+            rsync -va --exclude="*.dev*" "./docker-files" "./${{inputs.project-name}}-${{ steps.release-drafter.outputs.name }}/"
           }
           else {
             # '-Exclude' is not a valid option for the cp command on Linux.
-            cp -r "./docker-files" "./${{inputs.project-name}}-${{ steps.tag-release.outputs.tag }}/" -Exclude "*.dev*"
+            cp -r "./docker-files" "./${{inputs.project-name}}-${{ steps.release-drafter.outputs.name }}/" -Exclude "*.dev*"
           }
 
       - name: Zip release folder
-        run: Compress-Archive -Path "./${{inputs.project-name}}-${{ steps.tag-release.outputs.tag }}/*" -DestinationPath "./${{inputs.project-name}}-${{ steps.tag-release.outputs.tag }}.zip"
+        run: Compress-Archive -Path "./${{inputs.project-name}}-${{ steps.release-drafter.outputs.name }}/*" -DestinationPath "./${{inputs.project-name}}-${{ steps.release-drafter.outputs.name }}.zip"
 
       # ********** Upload zipped release to Artifact **********
 
@@ -115,8 +114,8 @@ jobs:
         if: ${{ inputs.build-runner == 'ubuntu-latest' }}
         uses: actions/upload-artifact@v3
         with:
-          name: "${{inputs.project-name}}-${{ steps.tag-release.outputs.tag }}.zip"
-          path: "./${{inputs.project-name}}-${{ steps.tag-release.outputs.tag }}.zip"
+          name: "${{inputs.project-name}}-${{ steps.release-drafter.outputs.name }}.zip"
+          path: "./${{inputs.project-name}}-${{ steps.release-drafter.outputs.name }}.zip"
           retention-days: 1
           if-no-files-found: error
 
@@ -129,4 +128,4 @@ jobs:
           }
 
           # STEP 2: Move release folder to "temp/uploads" folder
-          mv "./${{inputs.project-name}}-${{ steps.tag-release.outputs.tag }}.zip" "./temp/uploads/${{inputs.project-name}}-${{ steps.tag-release.outputs.tag }}.zip"
+          mv "./${{inputs.project-name}}-${{ steps.release-drafter.outputs.name }}.zip" "./temp/uploads/${{inputs.project-name}}-${{ steps.release-drafter.outputs.name }}.zip"
