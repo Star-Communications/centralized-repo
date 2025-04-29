@@ -20,11 +20,6 @@ on:
         type: string
         required: true
 
-      release-type:
-        description: "Release type (major, minor, patch, none)"
-        type: string
-        default: "none"
-
     outputs:
       release-file:
         description: "Name of the release file"
@@ -112,7 +107,7 @@ jobs:
       - name: Upload release to Artifact
         # upload to artifact only if running on 'ubuntu-latest'
         if: ${{ inputs.build-runner == 'ubuntu-latest' }}
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: "${{inputs.project-name}}-${{ steps.release-drafter.outputs.name }}.zip"
           path: "./${{inputs.project-name}}-${{ steps.release-drafter.outputs.name }}.zip"
