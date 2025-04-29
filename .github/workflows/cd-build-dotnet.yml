@@ -29,7 +29,7 @@ jobs:
     runs-on: ${{ inputs.build-runner }}
 
     outputs:
-      release-file: "${{ inputs.project-name }}-${{ steps.tag-release.outputs.tag }}.zip"
+      release-file: "${{ inputs.project-name }}-${{ steps.release-drafter.outputs.name}}.zip"
       project-folder-path: "${{ steps.set-project-folder-path.outputs.projectFolderPath }}"
 
     defaults:
@@ -79,36 +79,36 @@ jobs:
 
       # ********** Release Tag **********
       # TODO: prevent creating a release if there are no changes !!!
-      - name: Github Tag Bump
-        uses: anothrNick/github-tag-action@1.71.0 #   https://github.com/marketplace/actions/github-tag-bump
-        id: tag-release
+      - uses: release-drafter/release-drafter@master
+        id: release-drafter
         with:
+          publish: true
+          commitish: master
+        env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          WITH_V: true
-          # create_annotated_tag: true
 
       # ********** Prepare release folder & zip it **********
       - name: Create release folder
-        run: New-Item -ItemType Directory -Force -Path "./${{ inputs.project-name }}-${{ steps.tag-release.outputs.tag }}"
+        run: New-Item -ItemType Directory -Force -Path "./${{ inputs.project-name }}-${{ steps.release-drafter.outputs.name}}"
 
       - name: Copy .NET publish folder to release folder
-        run: mv "./publish" "./${{ inputs.project-name }}-${{ steps.tag-release.outputs.tag }}/"
+        run: mv "./publish" "./${{ inputs.project-name }}-${{ steps.release-drafter.outputs.name }}/"
         # run: cp -r "./publish" "./projectName-${{ steps.tag-release.outputs.tag }}/"
 
       - name: Copy docker files (excluding dev) to release folder
         run: |
           if ("${{ runner.os }}" -eq 'Linux') {
             # 'rsync' is not a built-in command in Windows PowerShell
-            rsync -va --exclude="*.dev*" "${{steps.set-project-folder-path.outputs.projectFolderPath}}/docker-files" "./${{ inputs.project-name }}-${{ steps.tag-release.outputs.tag }}/"
+            rsync -va --exclude="*.dev*" "${{steps.set-project-folder-path.outputs.projectFolderPath}}/docker-files" "./${{ inputs.project-name }}-${{ steps.release-drafter.outputs.name }}/"
           }
           else {
             # '-Exclude' is not a valid option for the cp command on Linux.
-            cp -r "${{steps.set-project-folder-path.outputs.projectFolderPath}}/docker-files" "./${{ inputs.project-name }}-${{ steps.tag-release.outputs.tag }}/" -Exclude "*.dev*"
+            cp -r "${{steps.set-project-folder-path.outputs.projectFolderPath}}/docker-files" "./${{ inputs.project-name }}-${{ steps.release-drafter.outputs.name }}/" -Exclude "*.dev*"
           }
 
       - name: Zip release folder
         # use /* in 'src path' to zip only the content of the folder, not the folder itself (avoid double folder in zip)
-        run: Compress-Archive -Path "./${{ inputs.project-name }}-${{ steps.tag-release.outputs.tag }}/*" -DestinationPath "./${{ inputs.project-name }}-${{ steps.tag-release.outputs.tag }}.zip"
+        run: Compress-Archive -Path "./${{ inputs.project-name }}-${{ steps.release-drafter.outputs.name }}/*" -DestinationPath "./${{ inputs.project-name }}-${{ steps.release-drafter.outputs.name }}.zip"
 
         # DON'T NEED THIS ANYMORE, AS WE mv INSTEAD cp IN STEP ABOVE
       # - name: Delete unzipped release folder
@@ -121,8 +121,8 @@ jobs:
         if: ${{ inputs.build-runner == 'ubuntu-latest' }}
         uses: actions/upload-artifact@v4
         with:
-          name: "${{ inputs.project-name }}-${{ steps.tag-release.outputs.tag }}.zip"
-          path: "./${{ inputs.project-name }}-${{ steps.tag-release.outputs.tag }}.zip"
+          name: "${{ inputs.project-name }}-${{ steps.release-drafter.outputs.name }}.zip"
+          path: "./${{ inputs.project-name }}-${{ steps.release-drafter.outputs.name }}.zip"
           retention-days: 5 # delete artifact after 10 days
           if-no-files-found: error
 
@@ -136,4 +136,4 @@ jobs:
           }
 
           # STEP 2: Move release folder to "temp/uploads" folder
-          mv "./${{ inputs.project-name }}-${{ steps.tag-release.outputs.tag }}.zip" "./temp/uploads/${{ inputs.project-name }}-${{ steps.tag-release.outputs.tag }}.zip"
+          mv "./${{ inputs.project-name }}-${{ steps.release-drafter.outputs.name }}.zip" "./temp/uploads/${{ inputs.project-name }}-${{ steps.release-drafter.outputs.name }}.zip"
