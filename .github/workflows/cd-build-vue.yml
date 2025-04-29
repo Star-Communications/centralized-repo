@@ -62,7 +62,7 @@ jobs:
         id: release-drafter
         with:
           publish: true
-          commitish: master
+          commitish: main
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
