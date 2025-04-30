@@ -40,7 +40,7 @@ jobs:
     steps:
       - name: Create or empty temporary folder
         run: |
-          if ( "${{ runner.os }}" == "Linux" ); then
+          if ( "${{ runner.os }}" == "Linux" ){
             if [ -d "TemporaryFolder" ]; then
               rm -rf "TemporaryFolder/*"
               echo "TemporaryFolder emptied"
@@ -48,7 +48,7 @@ jobs:
               mkdir -p "TemporaryFolder"
               echo "TemporaryFolder created"
             fi
-            else
+            } else{
             if (Test-Path "TemporaryFolder") {
               Remove-Item -Recurse -Force "TemporaryFolder\*"
               Write-Host "TemporaryFolder emptied"
@@ -56,7 +56,7 @@ jobs:
               New-Item -ItemType Directory -Path "TemporaryFolder" | Out-Null
               Write-Host "TemporaryFolder created"
             }
-            fi
+            fi}
 
   download-api-release:
     needs: create-temp-folder
