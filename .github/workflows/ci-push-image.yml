@@ -34,18 +34,6 @@ permissions:
   id-token: write
 
 jobs:
-  get-current-tag:
-    runs-on: ${{ inputs.runs-on }}
-    outputs:
-      current-tag: ${{ steps.get-tag.outputs.current-tag }}
-
-    steps:
-      - name: Get current branch tag
-        id: get-tag
-        run: |
-          tag=$(git describe --tags --exact-match 2>/dev/null || echo "latest")
-          echo "current-tag=$tag" >> $GITHUB_OUTPUT
-
   create-temp-folder:
     runs-on: ${{ inputs.runs-on }}
 
@@ -62,30 +50,63 @@ jobs:
     if: ${{ inputs.api-project-name != '' }}
     with:
       runs-on: ${{ inputs.runs-on }}
-      s3-bucket: svc-releases-bucket
+      s3-bucket: sc-releases-bucket
       s3-prefix: ${{ inputs.api-project-name }}
       download-path: "./TemporaryFolder"
-      unzip-file: true
+      # unzip-file: true
     secrets:
       AWS_ROLE_TO_ASSUME: ${{ secrets.AWS_ROLE_TO_ASSUME }}
     # the job returns the following outputs:
     #   downloaded-name-job-output:
 
   download-spa-release:
-    needs: [create-temp-folder, get-current-tag]
+    needs: create-temp-folder
 
     uses: ./.github/workflows/download-s3.yml
     if: ${{ inputs.spa-project-name != '' }}
     with:
       runs-on: ${{ inputs.runs-on }}
-      s3-bucket: svc-releases-bucket
+      s3-bucket: sc-releases-bucket
       s3-prefix: ${{ inputs.spa-project-name }}
       download-path: "./TemporaryFolder"
-      unzip-file: true
+      # unzip-file: true
     secrets:
       AWS_ROLE_TO_ASSUME: ${{ secrets.AWS_ROLE_TO_ASSUME }}
     # the job returns the following outputs:
     #   downloaded-name-job-output:
+
+  process-and-organize-files:
+    needs: [download-api-release, download-spa-release]
+    runs-on: ${{ inputs.runs-on }}
+
+    outputs:
+      combined-version: ${{ steps.set-version.outputs.combined-version }}
+
+    steps:
+      - name: Extract version information from file names
+        id: set-version
+        run: |
+          api_version=$(echo facility-api-*.zip | sed -E 's/facility-api-(.*)\.zip/\1/')
+          cms_version=$(echo facility-cms-*.zip | sed -E 's/facility-cms-(.*)\.zip/\1/')
+          combined_version="api-${api_version}+cms-${cms_version}"
+          echo "combined-version=${combined_version}" >> $GITHUB_OUTPUT
+
+      - name: Unzip API archive
+        run: |
+          unzip facility-api-*.zip -d facility-api
+
+      - name: Unzip CMS archive
+        run: |
+          unzip facility-cms-*.zip -d facility-cms
+
+      - name: Move CMS dist folder into API publish folder
+        run: |
+          mkdir -p facility-api/publish
+          mv facility-cms/dist facility-api/publish/
+
+      - name: Verify folder structure
+        run: |
+          tree facility-api
 
   # check-image-exists:
   #   needs: [download-api-release, download-spa-release]
@@ -103,14 +124,14 @@ jobs:
   #         echo "image-exists=$($imageExists -eq $true)" >> $env:GITHUB_OUTPUT
 
   build-and-push-image:
-    needs: [download-api-release, download-spa-release, get-current-tag]
+    needs: [process-and-organize-files]
     runs-on: ${{ inputs.runs-on }}
 
     steps:
       - name: Build Docker image
         run: |
-          docker build -t localhost:5000/${{ github.repository_owner }}/${{ inputs.project-bundle-name }}:${{ needs.get-current-tag.outputs.current-tag }} .
+          docker build -t localhost:5000/${{ inputs.project-bundle-name }}:${{ needs.process-and-organize-files.outputs.combined-version }} .
 
       - name: Push Docker image to local registry
         run: |
-          docker push localhost:5000/${{ github.repository_owner }}/${{ inputs.project-bundle-name }}:${{ needs.get-current-tag.outputs.current-tag }}
+          docker push localhost:5000/${{ inputs.project-bundle-name }}:${{ needs.process-and-organize-files.outputs.combined-version }}
