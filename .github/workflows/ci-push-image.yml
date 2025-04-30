@@ -40,7 +40,7 @@ jobs:
     steps:
       - name: Create or empty temporary folder
         run: |
-          if [[ "${{ runner.os }}" == "Linux" ]]; then
+          if ( "${{ runner.os }}" == "Linux" ); then
             if [ -d "TemporaryFolder" ]; then
               rm -rf "TemporaryFolder/*"
               echo "TemporaryFolder emptied"
