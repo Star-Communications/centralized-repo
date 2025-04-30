@@ -105,11 +105,11 @@ jobs:
 
       - name: Unzip API archive
         run: |
-          unzip facility-api-*.zip -d facility-api
+          Expand-Archive facility-api-*.zip -d facility-api
 
       - name: Unzip CMS archive
         run: |
-          unzip facility-cms-*.zip -d facility-cms
+          Expand-Archive facility-cms-*.zip -d facility-cms
 
       - name: Move CMS dist folder into API publish folder
         run: |
@@ -147,3 +147,13 @@ jobs:
       - name: Push Docker image to local registry
         run: |
           docker push localhost:5000/${{ inputs.project-bundle-name }}:${{ needs.process-and-organize-files.outputs.combined-version }}
+
+  clean-up:
+    needs: [process-and-organize-files, build-and-push-image]
+    runs-on: ${{ inputs.runs-on }}
+
+    steps:
+      - name: Clean up temporary folder
+        run: |
+          Remove-Item -Path "TemporaryFolder" -Force -Recurse -ErrorAction SilentlyContinue
+          echo "Temporary folder cleaned up."
