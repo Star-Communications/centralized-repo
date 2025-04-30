@@ -97,6 +97,10 @@ jobs:
           echo "SPA project name: ${{ inputs.spa-project-name }}"
           $api_version = (Get-ChildItem facility-api-*.zip).Name -replace 'facility-api-(.*)\.zip', '$1'
           $cms_version = (Get-ChildItem facility-cms-*.zip).Name -replace 'facility-cms-(.*)\.zip', '$1'
+          echo "API version: $api_version"
+          echo "CMS version: $cms_version"
+          # Set the combined version as an output variable
+
           combined_version="api-${api_version}+cms-${cms_version}"
           echo "combined-version=${combined_version}" >> $GITHUB_OUTPUT
 
