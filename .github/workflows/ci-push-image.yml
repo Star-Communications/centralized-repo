@@ -40,24 +40,11 @@ jobs:
     steps:
       - name: Create or empty temporary folder
         run: |
-          if [ "${{ runner.os }}" = "Linux" ]; then
-            if [ -d "TemporaryFolder" ]; then
-              rm -rf "TemporaryFolder/*"
-              echo "TemporaryFolder emptied"
-            else
-              mkdir -p "TemporaryFolder"
-              echo "TemporaryFolder created"
-            fi
-          else
-            pwsh -Command "
-            if (Test-Path 'TemporaryFolder') {
-              Remove-Item -Recurse -Force 'TemporaryFolder/*'
-              Write-Host 'TemporaryFolder emptied'
-            } else {
-              New-Item -ItemType Directory -Path 'TemporaryFolder' | Out-Null
-              Write-Host 'TemporaryFolder created'
-            }"
-          fi
+          if (Test-Path -Path "TemporaryFolder") {
+          Remove-Item -Path "TemporaryFolder" -Force -Recurse -ErrorAction SilentlyContinue
+          }
+          New-Item -ItemType Directory -Force -Path "TemporaryFolder" | Out-Null
+          echo "Temporary folder created or emptied."
 
   download-api-release:
     needs: create-temp-folder
