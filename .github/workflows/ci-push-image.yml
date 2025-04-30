@@ -38,10 +38,15 @@ jobs:
     runs-on: ${{ inputs.runs-on }}
 
     steps:
-      - name: Create temporary folder
+      - name: Create or empty temporary folder
         run: |
-          mkdir -p "TemporaryFolder"
-          echo "TemporaryFolder created"
+          if [ -d "TemporaryFolder" ]; then
+            rm -rf "TemporaryFolder/*"
+            echo "TemporaryFolder emptied"
+          else
+            mkdir -p "TemporaryFolder"
+            echo "TemporaryFolder created"
+          fi
 
   download-api-release:
     needs: create-temp-folder
