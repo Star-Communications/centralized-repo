@@ -100,9 +100,8 @@ jobs:
           echo "API version: $api_version"
           echo "CMS version: $cms_version"
           # Set the combined version as an output variable
-
-          combined_version="api-${api_version}+cms-${cms_version}"
-          echo "combined-version=${combined_version}" >> $GITHUB_OUTPUT
+          $combined_version="api-$($api_version)+cms-$($cms_version)"
+          echo "combined-version=$combined_version" >> $GITHUB_OUTPUT
 
       - name: Unzip API archive
         run: |
