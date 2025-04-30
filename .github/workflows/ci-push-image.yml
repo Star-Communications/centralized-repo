@@ -89,6 +89,14 @@ jobs:
       - name: Extract version information from file names
         id: set-version
         run: |
+          echo "Temporary folder contents:"
+          ls -l ./TemporaryFolder
+          cd ./TemporaryFolder
+          echo "Current directory: $(pwd)"
+          echo "Contents of the current directory:"
+          ls -l
+          echo "API project name: ${{ inputs.api-project-name }}"
+          echo "SPA project name: ${{ inputs.spa-project-name }}"
           api_version=$(echo facility-api-*.zip | sed -E 's/facility-api-(.*)\.zip/\1/')
           cms_version=$(echo facility-cms-*.zip | sed -E 's/facility-cms-(.*)\.zip/\1/')
           combined_version="api-${api_version}+cms-${cms_version}"
