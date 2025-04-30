@@ -40,16 +40,6 @@ jobs:
     steps:
       - name: Create or empty temporary folder
         run: |
-          if [ -d "TemporaryFolder" ]; then
-            rm -rf "TemporaryFolder/*"
-            echo "TemporaryFolder emptied"
-          else
-            mkdir -p "TemporaryFolder"
-            echo "TemporaryFolder created"
-          fi
-
-      - name: Create or empty temporary folder
-        run: |
           if [[ "${{ runner.os }}" == "Linux" ]]; then
             if [ -d "TemporaryFolder" ]; then
               rm -rf "TemporaryFolder/*"
