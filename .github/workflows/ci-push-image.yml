@@ -93,8 +93,6 @@ jobs:
           ls -l ./TemporaryFolder
           cd ./TemporaryFolder
           echo "Current directory: $(pwd)"
-          echo "Contents of the current directory:"
-          ls -l
           echo "API project name: ${{ inputs.api-project-name }}"
           echo "SPA project name: ${{ inputs.spa-project-name }}"
           api_version=$(echo facility-api-*.zip | sed -E 's/facility-api-(.*)\.zip/\1/')
