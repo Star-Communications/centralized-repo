@@ -133,7 +133,7 @@ jobs:
 
       - name: Verify folder structure
         run: |
-          tree facility-api
+          tree ./TemporaryFolder
 
   # check-image-exists:
   #   needs: [download-api-release, download-spa-release]
