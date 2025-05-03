@@ -134,6 +134,7 @@ jobs:
             echo "CMS dist folder not found. Skipping move step."
           }
           mv facility-cms/dist facility-api/publish/
+          mv facility-api/docker-files/Dockerfile.* facility-api/
 
       - name: Verify folder structure
         run: |
