@@ -124,7 +124,7 @@ jobs:
             echo "CMS archive not found. Skipping unzip step."
           }
 
-      - name: Move CMS dist folder into API publish folder
+      - name: Move CMS dist folder into API publish folder & Dockerfile
         run: |
           cd ./TemporaryFolder
           pwd
