@@ -135,6 +135,8 @@ jobs:
           }
           mv facility-cms/dist facility-api/publish/
           mv facility-api/docker-files/Dockerfile.* facility-api/
+          Remove-Item -Path facility-api/docker-files -Force -Recurse -ErrorAction SilentlyContinue
+          echo "Docker-files folder deleted."
 
       - name: Verify folder structure
         run: |
