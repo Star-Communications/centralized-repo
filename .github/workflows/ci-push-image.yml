@@ -133,7 +133,7 @@ jobs:
           } else {
             echo "CMS dist folder not found. Skipping move step."
           }
-          mv facility-cms/dist facility-api/publish/
+          mv facility-cms/dist facility-api/
           mv facility-api/docker-files/Dockerfile.* facility-api/
           Remove-Item -Path facility-api/docker-files -Force -Recurse -ErrorAction SilentlyContinue
           echo "Docker-files folder deleted."
