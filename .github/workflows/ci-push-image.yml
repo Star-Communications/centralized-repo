@@ -161,11 +161,13 @@ jobs:
     steps:
       - name: Build Docker image
         run: |
-          docker build -t localhost:5000/${{ inputs.project-bundle-name }}:${{ needs.process-and-organize-files.outputs.api-version }}+${{ needs.process-and-organize-files.outputs.cms-version }} .
+          $tag = "api-${{ needs.process-and-organize-files.outputs.api-version }}_cms-${{ needs.process-and-organize-files.outputs.cms-version }}"
+          docker build -t localhost:5000/${{ inputs.project-bundle-name }}:$tag .
 
       - name: Push Docker image to local registry
         run: |
-          docker push localhost:5000/${{ inputs.project-bundle-name }}:${{ needs.process-and-organize-files.outputs.api-version }}+${{ needs.process-and-organize-files.outputs.cms-version }}
+          $tag = "api-${{ needs.process-and-organize-files.outputs.api-version }}_cms-${{ needs.process-and-organize-files.outputs.cms-version }}"
+          docker push localhost:5000/${{ inputs.project-bundle-name }}:$tag
 
   clean-up:
     needs: [process-and-organize-files, build-and-push-image]
