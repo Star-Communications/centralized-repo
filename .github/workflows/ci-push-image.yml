@@ -105,13 +105,21 @@ jobs:
 
       - name: Unzip API archive
         run: |
-          Expand-Archive -Path facility-api-*.zip -DestinationPath facility-api -Force
-          echo "API archive unzipped successfully."
+          if (Test-Path -Path facility-api-*.zip) {
+            Expand-Archive -Path facility-api-*.zip -DestinationPath facility-api -Force
+            echo "API archive unzipped successfully."
+          } else {
+            echo "API archive not found. Skipping unzip step."
+          }
 
       - name: Unzip CMS archive
         run: |
-          Expand-Archive -Path facility-cms-*.zip -DestinationPath facility-cms -Force
-          echo "CMS archive unzipped successfully."
+          if (Test-Path -Path facility-cms-*.zip) {
+            Expand-Archive -Path facility-cms-*.zip -DestinationPath facility-cms -Force
+            echo "CMS archive unzipped successfully."
+          } else {
+            echo "CMS archive not found. Skipping unzip step."
+          }
 
       - name: Move CMS dist folder into API publish folder
         run: |
