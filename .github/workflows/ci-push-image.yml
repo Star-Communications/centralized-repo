@@ -125,7 +125,6 @@ jobs:
 
       - name: Move CMS dist folder into API publish folder
         run: |
-          cd ./TemporaryFolder
           if (Test-Path -Path facility-cms/dist) {
             echo "CMS dist folder found. Moving to API publish folder."
           } else {
