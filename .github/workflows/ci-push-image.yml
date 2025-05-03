@@ -83,7 +83,8 @@ jobs:
     runs-on: ${{ inputs.runs-on }}
 
     outputs:
-      combined-version: ${{ steps.set-version.outputs.combined-version }}
+      api-version: ${{ steps.set-version.outputs.api-version }}
+      cms-version: ${{ steps.set-version.outputs.cms-version }}
 
     steps:
       - name: Extract version information from file names
@@ -99,9 +100,8 @@ jobs:
           $cms_version = (Get-ChildItem facility-cms-*.zip).Name -replace 'facility-cms-(.*)\.zip', '$1'
           echo "API version: $api_version"
           echo "CMS version: $cms_version"
-          # Set the combined version as an output variable
-          $combined_version="api-$($api_version)+cms-$($cms_version)"
-          echo "combined-version=$combined_version" >> $env:GITHUB_OUTPUT
+          echo "api-version=$api_version" >> $env:GITHUB_OUTPUT
+          echo "cms-version=$cms_version" >> $env:GITHUB_OUTPUT
 
       - name: Unzip API archive
         run: |
@@ -161,11 +161,11 @@ jobs:
     steps:
       - name: Build Docker image
         run: |
-          docker build -t localhost:5000/${{ inputs.project-bundle-name }}:${{ needs.process-and-organize-files.outputs.combined-version }} .
+          docker build -t localhost:5000/${{ inputs.project-bundle-name }}:${{ needs.process-and-organize-files.outputs.api-version }}+${{ needs.process-and-organize-files.outputs.cms-version }} .
 
       - name: Push Docker image to local registry
         run: |
-          docker push localhost:5000/${{ inputs.project-bundle-name }}:${{ needs.process-and-organize-files.outputs.combined-version }}
+          docker push localhost:5000/${{ inputs.project-bundle-name }}:${{ needs.process-and-organize-files.outputs.combined-version }}+${{ needs.process-and-organize-files.outputs.cms-version }}
 
   clean-up:
     needs: [process-and-organize-files, build-and-push-image]
