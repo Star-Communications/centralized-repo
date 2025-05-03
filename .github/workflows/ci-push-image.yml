@@ -162,6 +162,7 @@ jobs:
     steps:
       - name: Build Docker image
         run: |
+          cd ./TemporaryFolder/facility-api
           $tag = "api-${{ needs.process-and-organize-files.outputs.api-version }}_cms-${{ needs.process-and-organize-files.outputs.cms-version }}"
           docker build -t localhost:5000/${{ inputs.project-bundle-name }}:$tag --file Dockerfile.${{inputs.api-project-name}}.prod .
 
