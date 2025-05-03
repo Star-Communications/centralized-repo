@@ -165,7 +165,7 @@ jobs:
 
       - name: Push Docker image to local registry
         run: |
-          docker push localhost:5000/${{ inputs.project-bundle-name }}:${{ needs.process-and-organize-files.outputs.combined-version }}+${{ needs.process-and-organize-files.outputs.cms-version }}
+          docker push localhost:5000/${{ inputs.project-bundle-name }}:${{ needs.process-and-organize-files.outputs.api-version }}+${{ needs.process-and-organize-files.outputs.cms-version }}
 
   clean-up:
     needs: [process-and-organize-files, build-and-push-image]
