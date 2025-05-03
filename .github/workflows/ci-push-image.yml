@@ -105,6 +105,9 @@ jobs:
 
       - name: Unzip API archive
         run: |
+          pwd
+          echo "Temporary folder contents:"
+          ls 
           if (Test-Path -Path facility-api-*.zip) {
             Expand-Archive -Path facility-api-*.zip -DestinationPath facility-api -Force
             echo "API archive unzipped successfully."
@@ -123,7 +126,6 @@ jobs:
 
       - name: Move CMS dist folder into API publish folder
         run: |
-          mkdir -p facility-api/publish
           mv facility-cms/dist facility-api/publish/
 
       - name: Verify folder structure
