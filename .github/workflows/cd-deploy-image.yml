@@ -28,6 +28,11 @@ on:
         type: string
         required: true
 
+      container-registry-URL:
+        description: "URL of the container registry"
+        type: string
+        required: true
+
 # disable permissions for all scopes (except for id-token)
 permissions:
   id-token: write
@@ -90,4 +95,4 @@ jobs:
 
           # Deploy the image to the server (replace with your deployment command)
           echo "Deploying image to server..."
-          docker run -d --name ${{inputs.project-bundle-name}} localhost:5000/${{ inputs.project-bundle-name }}:${{ inputs.api-project-version }}-${{ inputs.spa-project-version }}
+          docker run -d --name ${{inputs.project-bundle-name}} ${{ inputs.container-registry-URL }}/${{ inputs.project-bundle-name }}:${{ inputs.api-project-version }}-${{ inputs.spa-project-version }}
