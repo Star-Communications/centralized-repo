@@ -2,29 +2,24 @@ name: cd-deploy-image
 
 on:
   workflow_call:
-    secrets:
-      AWS_ROLE_TO_ASSUME:
-        description: "ARN of the AWS role to assume"
-        required: true
-
     inputs:
       runs-on:
         description: "The type of runner(s) to use (comma separated)"
         type: string
         required: true
 
-      linux-user:
-        description: "Linux user to use for the project folder path"
+      # linux-user:
+      #   description: "Linux user to use for the project folder path"
+      #   type: string
+      #   required: true
+
+      spa-project-version:
+        description: "version of the SPA project to be deployed"
         type: string
         required: true
 
-      s3-bucket:
-        description: "Name of the S3 bucket to download from"
-        type: string
-        required: true
-
-      project-name:
-        description: "Name of the project"
+      api-project-version:
+        description: "version of the API project to be deployed"
         type: string
         required: true
 
@@ -38,91 +33,61 @@ permissions:
   id-token: write
 
 jobs:
-  pre-deploy:
-    runs-on: ${{ inputs.runs-on }}
-    outputs:
-      project-folder-path: ${{ steps.set-output-vars.outputs.project-folder-path }}
-      latest-version: ${{ steps.get-latest-version.outputs.latest-version }}
+  # pre-deploy:
+  #   runs-on: ${{ inputs.runs-on }}
 
-    steps:
-      - name: Set output variables for next job (depending on the runner's OS)
-        id: set-output-vars
-        run: |
-          if ("${{ runner.os }}" -eq 'Linux') {
-            $projFolderPath = "/home/${{ inputs.linux-user }}/STAR-COM/${{ inputs.project-bundle-name }}/${{ inputs.project-name }}"
-          }
-          else {
-            $projFolderPath = "C:/STAR-COM/${{ inputs.project-bundle-name }}/${{ inputs.project-name }}"
-          }
+  #   outputs:
+  #     project-folder-path: ${{ steps.set-output-vars.outputs.project-folder-path }}
 
-          echo "project-folder-path=$projFolderPath" >> $env:GITHUB_OUTPUT
-          echo "projFolderPath = $projFolderPath"
+  #   defaults:
+  #     run:
+  #       shell: pwsh # use powershell as default shell for all steps
 
-      - name: Ensure folder structure exists (if not already)
-        run: |
-          $linuxPath = "/home/${{ inputs.linux-user }}/STAR-COM/${{ inputs.project-bundle-name }}/${{ inputs.project-name }}/installation-files"
+  #   steps:
+  #     - name: Set output variables for next job (depending on the runner's OS)
+  #       id: set-output-vars
+  #       run: |
+  #         if ("${{ runner.os }}" -eq 'Linux') {
+  #           $projFolderPath = "/home/${{ inputs.linux-user }}/STAR-COM/${{ inputs.project-bundle-name }}/${{ inputs.project-name }}"
+  #         }
+  #         else {
+  #           $projFolderPath = "C:/STAR-COM/${{ inputs.project-bundle-name }}/${{ inputs.project-name }}"
+  #         }
 
-          $windowsPath = "C:/STAR-COM/${{ inputs.project-bundle-name }}/${{ inputs.project-name }}/installation-files"
+  #         echo "project-folder-path=$projFolderPath" >> $env:GITHUB_OUTPUT
+  #         echo "projFolderPath = $projFolderPath"
 
-          if ("${{ runner.os }}" -eq 'Linux') {
-            if (-Not (Test-Path $linuxPath)) {
-              mkdir -p $linuxPath
-            }
-          }
-          else {
-            if (-Not (Test-Path $windowsPath)) {
-              mkdir -p $windowsPath
-            }
-          }
+  #     - name: Ensure folder structure exists (if not already)
+  #       run: |
+  #           $linuxPath = "/home/${{ inputs.linux-user }}/STAR-COM/${{ inputs.project-bundle-name }}/${{ inputs.project-name }}/installation-files"
 
-      - name: Get latest tagged version from S3
-        id: get-latest-version
-        run: |
-          # Fetch the latest version from S3
-          $latestVersion = aws s3 ls "s3://${{ inputs.s3-bucket }}/${{ inputs.project-name }}/" --recursive | `
-            Sort-Object -Property LastWriteTime -Descending | `   #TODO:change to to be sorted by name (version number)
-            Select-Object -First 1 | `
-            ForEach-Object { $_.Key -replace '.*/', '' }
+  #           $windowsPath = "C:/STAR-COM/${{ inputs.project-bundle-name }}/${{ inputs.project-name }}/installation-files"
 
-          echo "latest-version=$latestVersion" >> $env:GITHUB_OUTPUT
+  #           if ("${{ runner.os }}" -eq 'Linux') {
+  #             if (-Not (Test-Path $linuxPath)) {
+  #               mkdir -p $linuxPath
+  #             }
+  #           }
+  #           else {
+  #             if (-Not (Test-Path $windowsPath)) {
+  #               mkdir -p $windowsPath
+  #             }
+  #           }
 
-  check-image:
-    needs: pre-deploy
-    runs-on: ${{ inputs.runs-on }}
-    outputs:
-      image-exists: ${{ steps.check-image.outputs.image-exists }}
-
-    steps:
-      - name: Check if Docker image exists in GHCR
-        id: check-image
-        run: |
-          $imageName = "${{ inputs.project-name }}:${{ needs.pre-deploy.outputs.latest-version }}"
-          $imageExists = docker manifest inspect ghcr.io/${{ github.repository_owner }}/${imageName} > $null 2>&1
-          echo "image-exists=$($imageExists -eq $true)" >> $env:GITHUB_OUTPUT
-
-  build-and-push-image:
-    needs: [pre-deploy, check-image]
-    if: needs.check-image.outputs.image-exists == 'false'
+  deploy-image:
     runs-on: ${{ inputs.runs-on }}
 
     steps:
-      - name: Build Docker image
+      - name: deploy image to server
         run: |
-          docker build -t ghcr.io/${{ github.repository_owner }}/${{ inputs.project-name }}:${{ needs.pre-deploy.outputs.latest-version }} \
-            "${{ needs.pre-deploy.outputs.project-folder-path }}/installation-files"
+          # Set the API project version
+          $apiProjectVersion = "${{ inputs.api-project-version }}"
+          echo "API project version: $apiProjectVersion"
 
-      - name: Push Docker image to GHCR
-        env:
-          GHCR_PAT: ${{ secrets.GHCR_PAT }}
-        run: |
-          echo $GHCR_PAT | docker login ghcr.io -u ${{ github.repository_owner }} --password-stdin
-          docker push ghcr.io/${{ github.repository_owner }}/${{ inputs.project-name }}:${{ needs.pre-deploy.outputs.latest-version }}
+          # Set the SPA project version
+          $spaProjectVersion = "${{ inputs.spa-project-version }}"
+          echo "SPA project version: $spaProjectVersion"
 
-  deploy-container:
-    needs: [pre-deploy, check-image, build-and-push-image]
-    runs-on: ${{ inputs.runs-on }}
-
-    steps:
-      - name: Deploy Docker container
-        run: |
-          docker compose --file "${{ needs.pre-deploy.outputs.project-folder-path }}/installation-files/docker-files/docker-compose.${{ inputs.project-name }}.prod.yml" up -d
+          # Deploy the image to the server (replace with your deployment command)
+          echo "Deploying image to server..."
+          docker run -d --name ${{inputs.project-bundle-name}} localhost:5000/${{ inputs.project-bundle-name }}:${{ inputs.api-project-version }}-${{ inputs.spa-project-version }}
