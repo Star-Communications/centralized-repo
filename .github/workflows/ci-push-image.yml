@@ -96,8 +96,8 @@ jobs:
           echo "Current directory: $(pwd)"
           echo "API project name: ${{ inputs.api-project-name }}"
           echo "SPA project name: ${{ inputs.spa-project-name }}"
-          $api_version = (Get-ChildItem facility-api-*.zip).Name -replace 'facility-api-(.*)\.zip', '$1'
-          $cms_version = (Get-ChildItem facility-cms-*.zip).Name -replace 'facility-cms-(.*)\.zip', '$1'
+          $api_version = (Get-ChildItem ${{ inputs.api-project-name }}-*.zip).Name -replace '${{ inputs.api-project-name }}-(.*)\.zip', '$1'
+          $cms_version = (Get-ChildItem ${{ inputs.spa-project-name }}-*.zip).Name -replace '${{ inputs.spa-project-name }}-(.*)\.zip', '$1'
           echo "API version: $api_version"
           echo "CMS version: $cms_version"
           echo "api-version=$api_version" >> $env:GITHUB_OUTPUT
@@ -106,19 +106,20 @@ jobs:
       - name: Unzip API archive
         run: |
           cd ./TemporaryFolder
-          if (Test-Path -Path facility-api-*.zip) {
-            Expand-Archive -Path facility-api-*.zip -DestinationPath facility-api -Force
+          if (Test-Path -Path ${{ inputs.api-project-name }}-*.zip) {
+            Expand-Archive -Path ${{ inputs.api-project-name }}-*.zip -DestinationPath ${{ inputs.api-project-name }} -Force
             echo "API archive unzipped successfully."
           } else {
             echo "API archive not found. Skipping unzip step."
           }
 
       - name: Unzip CMS archive
+        if: ${{ inputs.spa-project-name != '' }}
         run: |
           cd ./TemporaryFolder
           pwd
-          if (Test-Path -Path facility-cms-*.zip) {
-            Expand-Archive -Path facility-cms-*.zip -DestinationPath facility-cms -Force
+          if (Test-Path -Path ${{ inputs.spa-project-name }}-*.zip) {
+            Expand-Archive -Path ${{ inputs.spa-project-name }}-*.zip -DestinationPath ${{ inputs.spa-project-name }} -Force
             echo "CMS archive unzipped successfully."
           } else {
             echo "CMS archive not found. Skipping unzip step."
@@ -128,14 +129,14 @@ jobs:
         run: |
           cd ./TemporaryFolder
           pwd
-          if (Test-Path -Path facility-cms/dist) {
+          if (Test-Path -Path ${{ inputs.spa-project-name }}/dist) {
             echo "CMS dist folder found. Moving to API publish folder."
+            mv ${{ inputs.spa-project-name }}/dist ${{ inputs.api-project-name }}/
           } else {
             echo "CMS dist folder not found. Skipping move step."
           }
-          mv facility-cms/dist facility-api/
-          mv facility-api/docker-files/Dockerfile.* facility-api/
-          Remove-Item -Path facility-api/docker-files -Force -Recurse -ErrorAction SilentlyContinue
+          mv ${{ inputs.api-project-name }}/docker-files/Dockerfile.${{inputs.api-project-name}}.prod ${{ inputs.api-project-name }}/
+          Remove-Item -Path ${{ inputs.api-project-name }}/docker-files -Force -Recurse -ErrorAction SilentlyContinue
           echo "Docker-files folder deleted."
 
       - name: Verify folder structure
@@ -164,13 +165,19 @@ jobs:
     steps:
       - name: Build Docker image
         run: |
-          cd ./TemporaryFolder/facility-api
-          $tag = "api-${{ needs.process-and-organize-files.outputs.api-version }}_cms-${{ needs.process-and-organize-files.outputs.cms-version }}"
+          cd ./TemporaryFolder/${{ inputs.api-project-name }}
+          if ("${{ inputs.spa-project-name }}" == "") {
+          $tag = "v-${{ inputs.api-project-name }}"
+          } else {
+          $tag = "api-${{ needs.process-and-organize-files.outputs.api-version }}_cms-${{ needs.process-and-organize-files.outputs.cms-version }}"}
           docker build -t localhost:5000/${{ inputs.project-bundle-name }}:$tag --file Dockerfile.${{inputs.api-project-name}}.prod .
 
       - name: Push Docker image to local registry
         run: |
-          $tag = "api-${{ needs.process-and-organize-files.outputs.api-version }}_cms-${{ needs.process-and-organize-files.outputs.cms-version }}"
+          if ("${{ inputs.spa-project-name }}" == "") {
+          $tag = "v-${{ inputs.api-project-name }}"
+          } else {
+          $tag = "api-${{ needs.process-and-organize-files.outputs.api-version }}_cms-${{ needs.process-and-organize-files.outputs.cms-version }}"}
           docker push localhost:5000/${{ inputs.project-bundle-name }}:$tag
 
   clean-up:
