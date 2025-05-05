@@ -29,6 +29,11 @@ on:
         type: string
         required: true
 
+      container-registry-URL:
+        description: "URL of the container registry"
+        type: string
+        required: true
+
 # disable permissions for all scopes (except for id-token)
 permissions:
   id-token: write
@@ -155,7 +160,7 @@ jobs:
   #       id: check-image
   #       run: |
   #         $imageName = "${{ inputs.project-name }}:${{ needs.pre-deploy.outputs.latest-version }}"
-  #         $imageExists = docker manifest inspect localhost:5000/${{ github.repository_owner }}/${imageName} > $null 2>&1
+  #         $imageExists = docker manifest inspect ${{ inputs.container-registry-URL }}/${{ github.repository_owner }}/${imageName} > $null 2>&1
   #         echo "image-exists=$($imageExists -eq $true)" >> $env:GITHUB_OUTPUT
 
   build-and-push-image:
@@ -170,7 +175,7 @@ jobs:
           $tag = "v-${{ inputs.api-project-name }}"
           } else {
           $tag = "api-${{ needs.process-and-organize-files.outputs.api-version }}_cms-${{ needs.process-and-organize-files.outputs.cms-version }}"}
-          docker build -t localhost:5000/${{ inputs.project-bundle-name }}:$tag --file Dockerfile.${{inputs.api-project-name}}.prod .
+          docker build -t ${{ inputs.container-registry-URL }}/${{ inputs.project-bundle-name }}:$tag --file Dockerfile.${{inputs.api-project-name}}.prod .
 
       - name: Push Docker image to local registry
         run: |
@@ -178,7 +183,7 @@ jobs:
           $tag = "v-${{ inputs.api-project-name }}"
           } else {
           $tag = "api-${{ needs.process-and-organize-files.outputs.api-version }}_cms-${{ needs.process-and-organize-files.outputs.cms-version }}"}
-          docker push localhost:5000/${{ inputs.project-bundle-name }}:$tag
+          docker push ${{ inputs.container-registry-URL }}/${{ inputs.project-bundle-name }}:$tag
 
   clean-up:
     needs: [process-and-organize-files, build-and-push-image]
