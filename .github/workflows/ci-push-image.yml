@@ -171,7 +171,7 @@ jobs:
       - name: Build Docker image
         run: |
           cd ./TemporaryFolder/${{ inputs.api-project-name }}
-          if ("${{ inputs.spa-project-name }}" == "") {
+          if (${{ inputs.spa-project-name }} == "") {
           $tag = "v-${{ inputs.api-project-name }}"
           } else {
           $tag = "api-${{ needs.process-and-organize-files.outputs.api-version }}_cms-${{ needs.process-and-organize-files.outputs.cms-version }}"}
@@ -179,7 +179,7 @@ jobs:
 
       - name: Push Docker image to local registry
         run: |
-          if ("${{ inputs.spa-project-name }}" == "") {
+          if (${{ inputs.spa-project-name }} == "") {
           $tag = "v-${{ inputs.api-project-name }}"
           } else {
           $tag = "api-${{ needs.process-and-organize-files.outputs.api-version }}_cms-${{ needs.process-and-organize-files.outputs.cms-version }}"}
@@ -194,3 +194,4 @@ jobs:
         run: |
           Remove-Item -Path "TemporaryFolder" -Force -Recurse -ErrorAction SilentlyContinue
           echo "Temporary folder cleaned up."
+      #remove dangling images
