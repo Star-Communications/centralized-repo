@@ -106,6 +106,7 @@ jobs:
         id: set-version
         run: |
           echo "current folder : Current directory: $(pwd)"
+          ls
           ls -l ./TemporaryFolder
           cd ./TemporaryFolder
           echo "Current directory: $(pwd)"
