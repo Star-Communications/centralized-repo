@@ -53,6 +53,8 @@ jobs:
           Remove-Item -Path "TemporaryFolder" -Force -Recurse -ErrorAction SilentlyContinue
           }
           New-Item -ItemType Directory -Force -Path "TemporaryFolder" | Out-Null
+          cd ./TemporaryFolder
+          echo "current folder : $(pwd)"
           echo "Temporary folder created or emptied."
 
   download-api-release:
@@ -106,7 +108,6 @@ jobs:
         id: set-version
         run: |
           echo "current folder : Current directory: $(pwd)"
-          ls
           ls -l ./TemporaryFolder
           cd ./TemporaryFolder
           echo "Current directory: $(pwd)"
