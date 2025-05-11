@@ -101,7 +101,7 @@ jobs:
       - name: Extract version information from file names
         id: set-version
         run: |
-          echo "Temporary folder contents:"
+          echo "current folder : Current directory: $(pwd)"
           ls -l ./TemporaryFolder
           cd ./TemporaryFolder
           echo "Current directory: $(pwd)"
