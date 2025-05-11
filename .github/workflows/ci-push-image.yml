@@ -177,6 +177,9 @@ jobs:
     needs: [process-and-organize-files]
     if: always()
     runs-on: ${{ inputs.runs-on }}
+    defaults:
+      run:
+        shell: pwsh # use powershell as default shell for all steps
 
     steps:
       - name: Build Docker image
@@ -200,6 +203,9 @@ jobs:
     needs: [build-and-push-image]
     if: always()
     runs-on: ${{ inputs.runs-on }}
+    defaults:
+      run:
+        shell: pwsh # use powershell as default shell for all steps
 
     steps:
       - name: Clean up temporary folder
