@@ -105,6 +105,7 @@ jobs:
 
     steps:
       - name: Download artifact api-file
+        if: ${{ inputs.runs-on == 'ubuntu-latest' }}
         uses: actions/download-artifact@v4
         continue-on-error: true # if no artifact is found, continue with next steps
         with:
@@ -112,6 +113,7 @@ jobs:
           path: ./TemporaryFolder
 
       - name: Download artifact spa-file
+        if: ${{ inputs.runs-on == 'ubuntu-latest' }} && ${{ inputs.spa-project-name != '' }}
         uses: actions/download-artifact@v4
         continue-on-error: true # if no artifact is found, continue with next steps
         with:
