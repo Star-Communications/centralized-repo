@@ -89,6 +89,7 @@ jobs:
 
   process-and-organize-files:
     needs: [download-api-release, download-spa-release]
+    # run this job even if the previous jobs fail
     if: always()
     runs-on: ${{ inputs.runs-on }}
 
@@ -193,6 +194,7 @@ jobs:
 
   clean-up:
     needs: [build-and-push-image]
+    if: always()
     runs-on: ${{ inputs.runs-on }}
 
     steps:
