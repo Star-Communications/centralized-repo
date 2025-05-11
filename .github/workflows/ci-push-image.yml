@@ -89,6 +89,7 @@ jobs:
 
   process-and-organize-files:
     needs: [download-api-release, download-spa-release]
+    if: always()
     runs-on: ${{ inputs.runs-on }}
 
     outputs:
