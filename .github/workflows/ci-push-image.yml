@@ -104,6 +104,20 @@ jobs:
       cms-version: ${{ steps.set-version.outputs.cms-version }}
 
     steps:
+      - name: Download artifact api-file
+        uses: actions/download-artifact@v4
+        continue-on-error: true # if no artifact is found, continue with next steps
+        with:
+          name: ${{ needs.download-api-release.outputs.downloaded-name-job-output }}
+          path: ./TemporaryFolder
+
+      - name: Download artifact spa-file
+        uses: actions/download-artifact@v4
+        continue-on-error: true # if no artifact is found, continue with next steps
+        with:
+          name: ${{ needs.download-spa-release.outputs.downloaded-name-job-output }}
+          path: ./TemporaryFolder
+
       - name: Extract version information from file names
         id: set-version
         run: |
