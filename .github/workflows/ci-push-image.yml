@@ -190,6 +190,7 @@ jobs:
           $tag = "v-${{ inputs.api-project-name }}"
           } else {
           $tag = "api-${{ steps.set-version.outputs.api_version }}_cms-${{ steps.set-version.outputs.cms_version }}"}
+          docker login ${{ inputs.container-registry-URL }} --username ${{ secrets.CONT_REG_USERNAME }} --password ${{ secrets.CONT_REG_PASSWORD }}
           docker push ${{ inputs.container-registry-URL }}/${{ inputs.project-bundle-name }}:$tag
 
   # check-image-exists:
