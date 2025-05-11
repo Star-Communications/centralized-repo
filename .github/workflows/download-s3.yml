@@ -180,3 +180,12 @@ jobs:
           echo "downloaded-name-step-output=$objName" >> $env:GITHUB_OUTPUT
 
           echo "downloaded-name-step-output= '$objName'"
+
+      - name: Upload downloaded data to artifact
+        if: ${{ inputs.runs-on == 'ubuntu-latest' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.unzip-file-id.outputs.downloaded-name-step-output }}
+          path: ${{ inputs.download-path }}/${{ steps.get-s3-object-name.outputs.obj-name }}
+          retention-days: 1 # delete artifact after 1 days
+          if-no-files-found: error

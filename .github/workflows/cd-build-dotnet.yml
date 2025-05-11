@@ -123,7 +123,7 @@ jobs:
         with:
           name: "${{ inputs.project-name }}-${{ steps.release-drafter.outputs.name }}.zip"
           path: "./${{ inputs.project-name }}-${{ steps.release-drafter.outputs.name }}.zip"
-          retention-days: 5 # delete artifact after 10 days
+          retention-days: 1 # delete artifact after 1 days
           if-no-files-found: error
 
       #  if build is running on our custom runner, move the release folder to 'temp/uploads' folder

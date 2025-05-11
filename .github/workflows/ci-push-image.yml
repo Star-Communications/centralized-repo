@@ -89,7 +89,7 @@ jobs:
     # the job returns the following outputs:
     #   downloaded-name-job-output:
 
-  process-and-organize-files:
+  process-and-organize-files-build-and-push-image:
     needs: [download-api-release, download-spa-release]
     # run this job even if the previous jobs fail
     if: always()
@@ -159,6 +159,22 @@ jobs:
       - name: Verify folder structure
         run: |
           tree ./TemporaryFolder
+      - name: Build Docker image
+        run: |
+          cd ./TemporaryFolder/${{ inputs.api-project-name }}
+          if ("${{ inputs.spa-project-name }}" -eq "") {
+          $tag = "v-${{ inputs.api-project-name }}"
+          } else {
+          $tag = "api-${{ steps.set-version.outputs.api_version  }}_cms-${{ steps.set-version.outputs.cms_version }}"}
+          docker build -t ${{ inputs.container-registry-URL }}/${{ inputs.project-bundle-name }}:$tag --file Dockerfile.${{inputs.api-project-name}}.prod .
+
+      - name: Push Docker image to local registry
+        run: |
+          if ("${{ inputs.spa-project-name }}" -eq "") {
+          $tag = "v-${{ inputs.api-project-name }}"
+          } else {
+          $tag = "api-${{ steps.set-version.outputs.api_version }}_cms-${{ steps.set-version.outputs.cms_version }}"}
+          docker push ${{ inputs.container-registry-URL }}/${{ inputs.project-bundle-name }}:$tag
 
   # check-image-exists:
   #   needs: [download-api-release, download-spa-release]
@@ -175,34 +191,8 @@ jobs:
   #         $imageExists = docker manifest inspect ${{ inputs.container-registry-URL }}/${{ github.repository_owner }}/${imageName} > $null 2>&1
   #         echo "image-exists=$($imageExists -eq $true)" >> $env:GITHUB_OUTPUT
 
-  build-and-push-image:
-    needs: [process-and-organize-files]
-    if: always()
-    runs-on: ${{ inputs.runs-on }}
-    defaults:
-      run:
-        shell: pwsh # use powershell as default shell for all steps
-
-    steps:
-      - name: Build Docker image
-        run: |
-          cd ./TemporaryFolder/${{ inputs.api-project-name }}
-          if ("${{ inputs.spa-project-name }}" -eq "") {
-          $tag = "v-${{ inputs.api-project-name }}"
-          } else {
-          $tag = "api-${{ needs.process-and-organize-files.outputs.api-version }}_cms-${{ needs.process-and-organize-files.outputs.cms-version }}"}
-          docker build -t ${{ inputs.container-registry-URL }}/${{ inputs.project-bundle-name }}:$tag --file Dockerfile.${{inputs.api-project-name}}.prod .
-
-      - name: Push Docker image to local registry
-        run: |
-          if ("${{ inputs.spa-project-name }}" -eq "") {
-          $tag = "v-${{ inputs.api-project-name }}"
-          } else {
-          $tag = "api-${{ needs.process-and-organize-files.outputs.api-version }}_cms-${{ needs.process-and-organize-files.outputs.cms-version }}"}
-          docker push ${{ inputs.container-registry-URL }}/${{ inputs.project-bundle-name }}:$tag
-
   clean-up:
-    needs: [build-and-push-image]
+    needs: [process-and-organize-files-build-and-push-image]
     if: always()
     runs-on: ${{ inputs.runs-on }}
     defaults:
@@ -212,6 +202,8 @@ jobs:
     steps:
       - name: Clean up temporary folder
         run: |
-          Remove-Item -Path "TemporaryFolder" -Force -Recurse -ErrorAction SilentlyContinue
-          echo "Temporary folder cleaned up."
+          if (Test-Path -Path "TemporaryFolder") {
+            # Remove the temporary folder and its contents	
+            Remove-Item -Path "TemporaryFolder" -Force -Recurse -ErrorAction SilentlyContinue
+            echo "Temporary folder cleaned up."}
       #remove dangling images
