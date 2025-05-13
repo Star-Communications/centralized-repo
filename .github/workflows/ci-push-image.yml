@@ -6,6 +6,12 @@ on:
       AWS_ROLE_TO_ASSUME:
         description: "ARN of the AWS role to assume"
         required: true
+      CONT_REG_USERNAME:
+        description: "Username for the container registry"
+        required: true
+      CONT_REG_PASSWORD:
+        description: "Password for the container registry"
+        required: true
 
     inputs:
       runs-on:
@@ -187,10 +193,6 @@ jobs:
       - name: Verify registry is reachable
         run: |
           curl -v ${{ inputs.container-registry-URL }}/v2/ || \(echo "❌ Registry not reachable" && exit 1)
-
-      - name: Debug secret length
-        run: |
-          echo -n "${{ secrets.CONT_REG_PASSWORD }}" | wc -c
 
       - name: Docker Login
         uses: docker/login-action@v3
