@@ -188,6 +188,10 @@ jobs:
         run: |
           curl -v ${{ inputs.container-registry-URL }}/v2/ || \(echo "❌ Registry not reachable" && exit 1)
 
+      - name: Debug secret length
+        run: |
+          echo -n "${{ secrets.CONT_REG_PASSWORD }}" | wc -c
+
       - name: Docker Login
         uses: docker/login-action@v3
         with:
