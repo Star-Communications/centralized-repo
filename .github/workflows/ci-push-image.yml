@@ -184,6 +184,13 @@ jobs:
           $tag = "api-${{ steps.set-version.outputs.api_version  }}_cms-${{ steps.set-version.outputs.cms_version }}"}
           docker build -t ${{ inputs.container-registry-URL }}/${{ inputs.project-bundle-name }}:$tag --file Dockerfile.${{inputs.api-project-name}}.prod .
 
+      - name: Docker Login
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ inputs.container-registry-URL }}
+          username: ${{ secrets.CONT_REG_USERNAME }}
+          password: ${{ secrets.CONT_REG_PASSWORD }}
+
       - name: Push Docker image to local registry
         run: |
           if ("${{ inputs.spa-project-name }}" -eq "") {
@@ -195,7 +202,6 @@ jobs:
           echo "Docker Private Registry Username: ${{ secrets.CONT_REG_USERNAME }}" 
           echo "Docker image tag: $tag"
           echo "Docker image name: ${{ inputs.container-registry-URL }}/${{ inputs.project-bundle-name }}:$tag"
-          docker login ${{ inputs.container-registry-URL }} --username ${{ secrets.CONT_REG_USERNAME }} --password-stdin <<< ${{ secrets.CONT_REG_PASSWORD }}
           docker push ${{ inputs.container-registry-URL }}/${{ inputs.project-bundle-name }}:$tag
 
   # check-image-exists:
