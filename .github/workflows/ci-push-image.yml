@@ -209,7 +209,7 @@ jobs:
           tree ./TemporaryFolder
 
       - name: Build Docker image
-        if: inputs.api-project-name != '' # Ensure API project name is provided
+        if: ${{ inputs.spa-project-name != '' }}
         run: |
           cd ./TemporaryFolder/${{ inputs.api-project-name }}
 
