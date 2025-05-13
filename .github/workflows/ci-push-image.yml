@@ -184,12 +184,16 @@ jobs:
           $tag = "api-${{ steps.set-version.outputs.api_version  }}_cms-${{ steps.set-version.outputs.cms_version }}"}
           docker build -t ${{ inputs.container-registry-URL }}/${{ inputs.project-bundle-name }}:$tag --file Dockerfile.${{inputs.api-project-name}}.prod .
 
-      # - name: Docker Login
-      #   uses: docker/login-action@v3
-      #   with:
-      #     registry: ${{ inputs.container-registry-URL }}
-      #     username: ${{ secrets.CONT_REG_USERNAME }}
-      #     password: ${{ secrets.CONT_REG_PASSWORD }}
+      - name: Verify registry is reachable
+        run: |
+          curl -v ${{ inputs.container-registry-URL }}/v2/ || \(echo "❌ Registry not reachable" && exit 1)
+
+      - name: Docker Login
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ inputs.container-registry-URL }}
+          username: ${{ secrets.CONT_REG_USERNAME }}
+          password: ${{ secrets.CONT_REG_PASSWORD }}
 
       - name: Push Docker image to local registry
         run: |
