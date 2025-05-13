@@ -129,16 +129,42 @@ jobs:
       - name: Extract version information from file names
         id: set-version
         run: |
-          echo "current folder : Current directory: $(pwd)"
-          ls -l ./TemporaryFolder
+          echo "Current directory: $(Resolve-Path ./TemporaryFolder)"
+          Get-ChildItem -Path ./TemporaryFolder | ForEach-Object { Write-Host $_.Name }
           cd ./TemporaryFolder
-          echo "Current directory: $(pwd)"
           echo "API project name: ${{ inputs.api-project-name }}"
           echo "SPA project name: ${{ inputs.spa-project-name }}"
-          $api_version = (Get-ChildItem ${{ inputs.api-project-name }}-*.zip).Name -replace '${{ inputs.api-project-name }}-(.*)\.zip', '$1'
-          $cms_version = (Get-ChildItem ${{ inputs.spa-project-name }}-*.zip).Name -replace '${{ inputs.spa-project-name }}-(.*)\.zip', '$1'
-          echo "API version: $api_version"
-          echo "CMS version: $cms_version"
+
+          $api_version = ""
+          if ("${{ inputs.api-project-name }}" -ne "") {
+            $api_file_pattern = "${{ inputs.api-project-name }}-*.zip"
+            $api_file = Get-ChildItem -Path $api_file_pattern -ErrorAction SilentlyContinue
+            if ($api_file) {
+              # Assuming only one matching API file
+              $api_version = ($api_file | Select-Object -First 1).Name -replace "^${{ inputs.api-project-name }}-(.*)\.zip$", '$1'
+            } else {
+              echo "API version file matching '$api_file_pattern' not found."
+            }
+          } else {
+            echo "API project name not provided, skipping API version extraction."
+          }
+
+          $cms_version = ""
+          if ("${{ inputs.spa-project-name }}" -ne "") {
+            $spa_file_pattern = "${{ inputs.spa-project-name }}-*.zip"
+            $spa_file = Get-ChildItem -Path $spa_file_pattern -ErrorAction SilentlyContinue
+            if ($spa_file) {
+              # Assuming only one matching SPA file
+              $cms_version = ($spa_file | Select-Object -First 1).Name -replace "^${{ inputs.spa-project-name }}-(.*)\.zip$", '$1'
+            } else {
+              echo "CMS version file matching '$spa_file_pattern' not found."
+            }
+          } else {
+            echo "SPA project name not provided, skipping CMS version extraction."
+          }
+
+          echo "Final API version: $api_version"
+          echo "Final CMS version: $cms_version"
           echo "api-version=$api_version" >> $env:GITHUB_OUTPUT
           echo "cms-version=$cms_version" >> $env:GITHUB_OUTPUT
 
@@ -181,13 +207,32 @@ jobs:
       - name: Verify folder structure
         run: |
           tree ./TemporaryFolder
+
       - name: Build Docker image
+        if: inputs.api-project-name != '' # Ensure API project name is provided
         run: |
           cd ./TemporaryFolder/${{ inputs.api-project-name }}
+
+          $api_version_val = "${{ steps.set-version.outputs.api_version }}"
+          $cms_version_val = "${{ steps.set-version.outputs.cms_version }}"
+
+          if (-not $api_version_val) {
+            Write-Error "API version is missing. Cannot build Docker image without a valid API version."
+            exit 1
+          }
+
+          $tag = ""
           if ("${{ inputs.spa-project-name }}" -eq "") {
-          $tag = "v-${{ steps.set-version.outputs.api_version }}"
+            $tag = "v-${api_version_val}"
           } else {
-          $tag = "api-${{ steps.set-version.outputs.api_version  }}_spa-${{ steps.set-version.outputs.cms_version }}"}
+            if (-not $cms_version_val) {
+              Write-Error "SPA project ('${{ inputs.spa-project-name }}') was specified, but its version ('${{ steps.set-version.outputs.cms_version }}') could not be determined. Cannot form combined tag."
+              exit 1
+            }
+            $tag = "api-${api_version_val}_spa-${cms_version_val}"
+          }
+
+          Write-Host "Building Docker image with tag: $tag"
           docker build -t ${{ inputs.container-registry-URL }}/${{ inputs.project-bundle-name }}:$tag --file Dockerfile.${{inputs.api-project-name}}.prod .
 
       - name: Verify registry is reachable
