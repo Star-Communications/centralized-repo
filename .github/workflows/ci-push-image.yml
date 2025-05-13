@@ -211,7 +211,7 @@ jobs:
         run: |
           cd ./TemporaryFolder/${{ inputs.api-project-name }}
           if ("${{ inputs.spa-project-name }}" -eq "") {
-          $tag = "v-${{ steps.set-version.outputs.api-version }}"
+          $tag = "${{ steps.set-version.outputs.api-version }}"
           } else {
           $tag = "api-${{ steps.set-version.outputs.api-version  }}_spa-${{ steps.set-version.outputs.cms-version }}"}
           docker build -t ${{ inputs.container-registry-URL }}/${{ inputs.project-bundle-name }}:$tag --file Dockerfile.${{inputs.api-project-name}}.prod .
@@ -230,7 +230,7 @@ jobs:
       - name: Push Docker image to local registry
         run: |
           if ("${{ inputs.spa-project-name }}" -eq "") {
-          $tag = "v-${{ steps.set-version.outputs.api-version }}"
+          $tag = "${{ steps.set-version.outputs.api-version }}"
           } else {
           $tag = "api-${{ steps.set-version.outputs.api-version }}_cms-${{ steps.set-version.outputs.cms-version }}"}
           echo "Pushing Docker image to registry..."
