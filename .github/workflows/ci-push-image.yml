@@ -204,7 +204,7 @@ jobs:
       - name: Push Docker image to local registry
         run: |
           if ("${{ inputs.spa-project-name }}" -eq "") {
-          $tag = "v-${{ inputs.api-project-name }}"
+          $tag = "v-${{ steps.set-version.outputs.api_version }}"
           } else {
           $tag = "api-${{ steps.set-version.outputs.api_version }}_cms-${{ steps.set-version.outputs.cms_version }}"}
           echo "Pushing Docker image to registry..."
