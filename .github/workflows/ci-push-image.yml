@@ -105,7 +105,7 @@ jobs:
 
     steps:
       - name: Download artifact api-file
-        if: ${{ inputs.runs-on == 'ubuntu-latest' }}
+        if: ${{ inputs.runs-on == 'ubuntu-latest' }} && ${{ inputs.api-project-name != '' }}
         uses: actions/download-artifact@v4
         continue-on-error: true # if no artifact is found, continue with next steps
         with:
@@ -190,7 +190,12 @@ jobs:
           $tag = "v-${{ inputs.api-project-name }}"
           } else {
           $tag = "api-${{ steps.set-version.outputs.api_version }}_cms-${{ steps.set-version.outputs.cms_version }}"}
-          docker login ${{ inputs.container-registry-URL }} --username ${{ secrets.CONT_REG_USERNAME }} --password ${{ secrets.CONT_REG_PASSWORD }}
+          echo "Pushing Docker image to registry..."
+          echo "Container registry URL: ${{ inputs.container-registry-URL }}"
+          echo "Docker Private Registry Username: ${{ secrets.CONT_REG_USERNAME }}" 
+          echo "Docker image tag: $tag"
+          echo "Docker image name: ${{ inputs.container-registry-URL }}/${{ inputs.project-bundle-name }}:$tag"
+          docker login ${{ inputs.container-registry-URL }} --username ${{ secrets.CONT_REG_USERNAME }} --password-stdin <<< ${{ secrets.CONT_REG_PASSWORD }}
           docker push ${{ inputs.container-registry-URL }}/${{ inputs.project-bundle-name }}:$tag
 
   # check-image-exists:
