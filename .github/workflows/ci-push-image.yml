@@ -185,9 +185,9 @@ jobs:
         run: |
           cd ./TemporaryFolder/${{ inputs.api-project-name }}
           if ("${{ inputs.spa-project-name }}" -eq "") {
-          $tag = "v-${{ inputs.api-project-name }}"
+          $tag = "v-${{ steps.set-version.outputs.api_version }}"
           } else {
-          $tag = "api-${{ steps.set-version.outputs.api_version  }}_cms-${{ steps.set-version.outputs.cms_version }}"}
+          $tag = "api-${{ steps.set-version.outputs.api_version  }}_spa-${{ steps.set-version.outputs.cms_version }}"}
           docker build -t ${{ inputs.container-registry-URL }}/${{ inputs.project-bundle-name }}:$tag --file Dockerfile.${{inputs.api-project-name}}.prod .
 
       - name: Verify registry is reachable
