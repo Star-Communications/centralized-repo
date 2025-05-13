@@ -207,32 +207,13 @@ jobs:
       - name: Verify folder structure
         run: |
           tree ./TemporaryFolder
-
       - name: Build Docker image
-        if: ${{ inputs.spa-project-name != '' }}
         run: |
           cd ./TemporaryFolder/${{ inputs.api-project-name }}
-
-          $api_version_val = "${{ steps.set-version.outputs.api_version }}"
-          $cms_version_val = "${{ steps.set-version.outputs.cms_version }}"
-
-          if (-not $api_version_val) {
-            Write-Error "API version is missing. Cannot build Docker image without a valid API version."
-            exit 1
-          }
-
-          $tag = ""
           if ("${{ inputs.spa-project-name }}" -eq "") {
-            $tag = "v-${api_version_val}"
+          $tag = "v-${{ steps.set-version.outputs.api-version }}"
           } else {
-            if (-not $cms_version_val) {
-              Write-Error "SPA project ('${{ inputs.spa-project-name }}') was specified, but its version ('${{ steps.set-version.outputs.cms_version }}') could not be determined. Cannot form combined tag."
-              exit 1
-            }
-            $tag = "api-${api_version_val}_spa-${cms_version_val}"
-          }
-
-          Write-Host "Building Docker image with tag: $tag"
+          $tag = "api-${{ steps.set-version.outputs.api-version  }}_spa-${{ steps.set-version.outputs.cms-version }}"}
           docker build -t ${{ inputs.container-registry-URL }}/${{ inputs.project-bundle-name }}:$tag --file Dockerfile.${{inputs.api-project-name}}.prod .
 
       - name: Verify registry is reachable
@@ -249,9 +230,9 @@ jobs:
       - name: Push Docker image to local registry
         run: |
           if ("${{ inputs.spa-project-name }}" -eq "") {
-          $tag = "v-${{ steps.set-version.outputs.api_version }}"
+          $tag = "v-${{ steps.set-version.outputs.api-version }}"
           } else {
-          $tag = "api-${{ steps.set-version.outputs.api_version }}_cms-${{ steps.set-version.outputs.cms_version }}"}
+          $tag = "api-${{ steps.set-version.outputs.api-version }}_cms-${{ steps.set-version.outputs.cms-version }}"}
           echo "Pushing Docker image to registry..."
           echo "Container registry URL: ${{ inputs.container-registry-URL }}"
           echo "Docker Private Registry Username: ${{ secrets.CONT_REG_USERNAME }}" 
