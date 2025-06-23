@@ -12,6 +12,10 @@ on:
         type: string
         required: false
         default: "ubuntu-latest"
+      project-name:
+        description: "Name of the project (used as Docker image name)"
+        type: string
+        required: true
     secrets:
       CONT_REG_USERNAME:
         description: "Username for the container registry"
@@ -99,10 +103,8 @@ jobs:
 
       - name: Build Docker image
         run: |
-          REPO_NAME=$(basename ${{ github.repository }})
-          docker build -t ${{ inputs.container-registry-url }}/$REPO_NAME:${{ steps.tag.outputs.tag }} .
+          docker build -t ${{ inputs.container-registry-url }}/${{ inputs.project-name }}:${{ steps.tag.outputs.tag }} .
 
       - name: Push Docker image
         run: |
-          REPO_NAME=$(basename ${{ github.repository }})
-          docker push ${{ inputs.container-registry-url }}/$REPO_NAME:${{ steps.tag.outputs.tag }}
+          docker push ${{ inputs.container-registry-url }}/${{ inputs.project-name }}:${{ steps.tag.outputs.tag }}
