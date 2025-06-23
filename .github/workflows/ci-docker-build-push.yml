@@ -3,7 +3,7 @@ name: Build, Tag, and Push Docker Image
 on:
   workflow_call:
     inputs:
-      container-registry-url:
+      container-registry-URL:
         description: "URL of the container registry"
         type: string
         required: true
@@ -97,14 +97,14 @@ jobs:
       - name: Log in to private registry
         uses: docker/login-action@v3
         with:
-          registry: ${{ inputs.container-registry-url }}
+          registry: ${{ inputs.container-registry-URL }}
           username: ${{ secrets.CONT_REG_USERNAME }}
           password: ${{ secrets.CONT_REG_PASSWORD }}
 
       - name: Build Docker image
         run: |
-          docker build -t ${{ inputs.container-registry-url }}/${{ inputs.project-name }}:${{ steps.tag.outputs.tag }} .
+          docker build -t ${{ inputs.container-registry-URL }}/${{ inputs.project-name }}:${{ steps.tag.outputs.tag }} .
 
       - name: Push Docker image
         run: |
-          docker push ${{ inputs.container-registry-url }}/${{ inputs.project-name }}:${{ steps.tag.outputs.tag }}
+          docker push ${{ inputs.container-registry-URL }}/${{ inputs.project-name }}:${{ steps.tag.outputs.tag }}
