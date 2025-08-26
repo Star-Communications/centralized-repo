@@ -68,8 +68,36 @@ services:
 # 7) Verify user got added to 'sysadmin role' (run each line individually):
 #  > SELECT IS_SRVROLEMEMBER('sysadmin', 'SCTracker');
 #
-# 6) Add new user with login Access and DB create Permission (needed if I let tracker-api create DB using login user??):
+# 8) Add new user with login Access and DB create Permission (needed if I let tracker-api create DB using login user??):
 #  > CREATE LOGIN SCTracker WITH PASSWORD = 'SCTracker@123';
 #  > GO
 #  > CREATE USER SCTracker FOR LOGIN SCTracker
 #  > GO
+#
+# 9) Set the model database to SIMPLE recovery mode:
+#     This ensures all new databases automatically use SIMPLE recovery mode, which:
+#     - Automatically truncates transaction logs to prevent disk space issues
+#     Run the following commands in sqlcmd:
+#  > ALTER DATABASE [model] SET RECOVERY SIMPLE;
+#  > GO
+#
+# 10) Managing transaction log files for existing databases:
+#     If you have existing databases with large log files, follow these steps to shrink them:
+#
+#     Step A: Check current log file sizes and names
+#     > USE [YOUR_DATABASE_NAME];
+#     > GO
+#     > SELECT name AS LogicalName,
+#     >        type_desc AS FileType,
+#     >        size * 8 / 1024 AS SizeMB
+#     > FROM sys.database_files;
+#     > GO
+#
+#     Step B: Shrink each log file to 512 MB (replace YOUR_DATABASE_NAME and LOG_FILE_NAME with actual values)
+#     > USE [YOUR_DATABASE_NAME];
+#     > GO
+#     > DBCC SHRINKFILE ('LOG_FILE_NAME', 512);
+#     > GO
+#
+#     Note: Replace YOUR_DATABASE_NAME with your actual database name and LOG_FILE_NAME with the
+#           LogicalName from Step A (usually ends with '_Log')
