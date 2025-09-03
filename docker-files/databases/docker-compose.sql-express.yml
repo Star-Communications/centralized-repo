@@ -45,7 +45,7 @@ services:
 # 1) Enter container's shell: 'docker exec -it sql-express sh'
 #
 # 2) Limit DB engine to 1 GB memory (RAM):
-#   'echo "sp_configure 'show advanced options', 1; \n GO \n RECONFIGURE; \n GO \n sp_configure 'max server memory', 1024; \n GO \n RECONFIGURE; \n GO" > tmp/limit-memory.sql; /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P 'Sa@12345' -i tmp/limit-memory.sql'
+#   'echo -e "sp_configure 'show advanced options', 1; \n GO \n RECONFIGURE; \n GO \n sp_configure 'max server memory', 1024; \n GO \n RECONFIGURE; \n GO" > tmp/limit-memory.sql; /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P 'Sa@12345' -i tmp/limit-memory.sql'
 #    explanation:
 #     1) write T-SQL script to limit the DB engine to 1 GB memory into file 'tmp/limit-memory.sql'
 #     2) run 'limit-memory.sql' sql script using 'sqlcmd -i' command
