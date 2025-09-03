@@ -38,7 +38,10 @@ services:
 # 4) Start container
 #   a) cd into 'UTILITIES/'
 #   b) Run 'docker compose --file ./docker-compose.sql-express.yml up -d --build'
-
+# 5) Update permissions of directories (cd into 'UTILITIES/'):
+#   'sudo chmod -R 2777 .'
+# 6) Update permissions of directories (cd into 'SC-TRACKER/'):
+#   'sudo chmod -R 2777 .'
 # ------------------------------------------------------------
 
 # [AFTER STARTING THE CONTAINER]
