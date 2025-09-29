@@ -6,6 +6,12 @@ on:
       AWS_ROLE_TO_ASSUME:
         description: "ARN of the AWS role to assume"
         required: true
+      CONT_REG_USERNAME:
+        description: "Username for the container registry"
+        required: true
+      CONT_REG_PASSWORD:
+        description: "Password for the container registry"
+        required: true
 
     inputs:
       runs-on:
@@ -105,7 +111,7 @@ jobs:
 
     steps:
       - name: Download artifact api-file
-        if: ${{ inputs.runs-on == 'ubuntu-latest' }}
+        if: ${{ inputs.runs-on == 'ubuntu-latest' }} && ${{ inputs.api-project-name != '' }}
         uses: actions/download-artifact@v4
         continue-on-error: true # if no artifact is found, continue with next steps
         with:
@@ -123,16 +129,42 @@ jobs:
       - name: Extract version information from file names
         id: set-version
         run: |
-          echo "current folder : Current directory: $(pwd)"
-          ls -l ./TemporaryFolder
+          echo "Current directory: $(Resolve-Path ./TemporaryFolder)"
+          Get-ChildItem -Path ./TemporaryFolder | ForEach-Object { Write-Host $_.Name }
           cd ./TemporaryFolder
-          echo "Current directory: $(pwd)"
           echo "API project name: ${{ inputs.api-project-name }}"
           echo "SPA project name: ${{ inputs.spa-project-name }}"
-          $api_version = (Get-ChildItem ${{ inputs.api-project-name }}-*.zip).Name -replace '${{ inputs.api-project-name }}-(.*)\.zip', '$1'
-          $cms_version = (Get-ChildItem ${{ inputs.spa-project-name }}-*.zip).Name -replace '${{ inputs.spa-project-name }}-(.*)\.zip', '$1'
-          echo "API version: $api_version"
-          echo "CMS version: $cms_version"
+
+          $api_version = ""
+          if ("${{ inputs.api-project-name }}" -ne "") {
+            $api_file_pattern = "${{ inputs.api-project-name }}-*.zip"
+            $api_file = Get-ChildItem -Path $api_file_pattern -ErrorAction SilentlyContinue
+            if ($api_file) {
+              # Assuming only one matching API file
+              $api_version = ($api_file | Select-Object -First 1).Name -replace "^${{ inputs.api-project-name }}-(.*)\.zip$", '$1'
+            } else {
+              echo "API version file matching '$api_file_pattern' not found."
+            }
+          } else {
+            echo "API project name not provided, skipping API version extraction."
+          }
+
+          $cms_version = ""
+          if ("${{ inputs.spa-project-name }}" -ne "") {
+            $spa_file_pattern = "${{ inputs.spa-project-name }}-*.zip"
+            $spa_file = Get-ChildItem -Path $spa_file_pattern -ErrorAction SilentlyContinue
+            if ($spa_file) {
+              # Assuming only one matching SPA file
+              $cms_version = ($spa_file | Select-Object -First 1).Name -replace "^${{ inputs.spa-project-name }}-(.*)\.zip$", '$1'
+            } else {
+              echo "CMS version file matching '$spa_file_pattern' not found."
+            }
+          } else {
+            echo "SPA project name not provided, skipping CMS version extraction."
+          }
+
+          echo "Final API version: $api_version"
+          echo "Final CMS version: $cms_version"
           echo "api-version=$api_version" >> $env:GITHUB_OUTPUT
           echo "cms-version=$cms_version" >> $env:GITHUB_OUTPUT
 
@@ -179,17 +211,33 @@ jobs:
         run: |
           cd ./TemporaryFolder/${{ inputs.api-project-name }}
           if ("${{ inputs.spa-project-name }}" -eq "") {
-          $tag = "v-${{ inputs.api-project-name }}"
+          $tag = "${{ steps.set-version.outputs.api-version }}"
           } else {
-          $tag = "api-${{ steps.set-version.outputs.api_version  }}_cms-${{ steps.set-version.outputs.cms_version }}"}
+          $tag = "api-${{ steps.set-version.outputs.api-version  }}_spa-${{ steps.set-version.outputs.cms-version }}"}
           docker build -t ${{ inputs.container-registry-URL }}/${{ inputs.project-bundle-name }}:$tag --file Dockerfile.${{inputs.api-project-name}}.prod .
+
+      - name: Verify registry is reachable
+        run: |
+          curl -v ${{ inputs.container-registry-URL }}/v2/ || \(echo "❌ Registry not reachable" && exit 1)
+
+      - name: Docker Login
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ inputs.container-registry-URL }}
+          username: ${{ secrets.CONT_REG_USERNAME }}
+          password: ${{ secrets.CONT_REG_PASSWORD }}
 
       - name: Push Docker image to local registry
         run: |
           if ("${{ inputs.spa-project-name }}" -eq "") {
-          $tag = "v-${{ inputs.api-project-name }}"
+          $tag = "${{ steps.set-version.outputs.api-version }}"
           } else {
-          $tag = "api-${{ steps.set-version.outputs.api_version }}_cms-${{ steps.set-version.outputs.cms_version }}"}
+          $tag = "api-${{ steps.set-version.outputs.api-version }}_cms-${{ steps.set-version.outputs.cms-version }}"}
+          echo "Pushing Docker image to registry..."
+          echo "Container registry URL: ${{ inputs.container-registry-URL }}"
+          echo "Docker Private Registry Username: ${{ secrets.CONT_REG_USERNAME }}" 
+          echo "Docker image tag: $tag"
+          echo "Docker image name: ${{ inputs.container-registry-URL }}/${{ inputs.project-bundle-name }}:$tag"
           docker push ${{ inputs.container-registry-URL }}/${{ inputs.project-bundle-name }}:$tag
 
   # check-image-exists:

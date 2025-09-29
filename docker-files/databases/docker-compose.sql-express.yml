@@ -38,14 +38,17 @@ services:
 # 4) Start container
 #   a) cd into 'UTILITIES/'
 #   b) Run 'docker compose --file ./docker-compose.sql-express.yml up -d --build'
-
+# 5) Update permissions of directories (cd into 'UTILITIES/'):
+#   'sudo chmod -R 2777 .'
+# 6) Update permissions of directories (cd into 'SC-TRACKER/'):
+#   'sudo chmod -R 2777 .'
 # ------------------------------------------------------------
 
 # [AFTER STARTING THE CONTAINER]
 # 1) Enter container's shell: 'docker exec -it sql-express sh'
 #
 # 2) Limit DB engine to 1 GB memory (RAM):
-#   'echo "sp_configure 'show advanced options', 1; \n GO \n RECONFIGURE; \n GO \n sp_configure 'max server memory', 1024; \n GO \n RECONFIGURE; \n GO" > tmp/limit-memory.sql; /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P 'Sa@12345' -i tmp/limit-memory.sql'
+#   'echo -e "sp_configure 'show advanced options', 1; \n GO \n RECONFIGURE; \n GO \n sp_configure 'max server memory', 1024; \n GO \n RECONFIGURE; \n GO" > tmp/limit-memory.sql; /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P 'Sa@12345' -i tmp/limit-memory.sql'
 #    explanation:
 #     1) write T-SQL script to limit the DB engine to 1 GB memory into file 'tmp/limit-memory.sql'
 #     2) run 'limit-memory.sql' sql script using 'sqlcmd -i' command
@@ -68,8 +71,36 @@ services:
 # 7) Verify user got added to 'sysadmin role' (run each line individually):
 #  > SELECT IS_SRVROLEMEMBER('sysadmin', 'SCTracker');
 #
-# 6) Add new user with login Access and DB create Permission (needed if I let tracker-api create DB using login user??):
+# 8) Add new user with login Access and DB create Permission (needed if I let tracker-api create DB using login user??):
 #  > CREATE LOGIN SCTracker WITH PASSWORD = 'SCTracker@123';
 #  > GO
 #  > CREATE USER SCTracker FOR LOGIN SCTracker
 #  > GO
+#
+# 9) Set the model database to SIMPLE recovery mode:
+#     This ensures all new databases automatically use SIMPLE recovery mode, which:
+#     - Automatically truncates transaction logs to prevent disk space issues
+#     Run the following commands in sqlcmd:
+#  > ALTER DATABASE [model] SET RECOVERY SIMPLE;
+#  > GO
+#
+# 10) Managing transaction log files for existing databases:
+#     If you have existing databases with large log files, follow these steps to shrink them:
+#
+#     Step A: Check current log file sizes and names
+#     > USE [YOUR_DATABASE_NAME];
+#     > GO
+#     > SELECT name AS LogicalName,
+#     >        type_desc AS FileType,
+#     >        size * 8 / 1024 AS SizeMB
+#     > FROM sys.database_files;
+#     > GO
+#
+#     Step B: Shrink each log file to 512 MB (replace YOUR_DATABASE_NAME and LOG_FILE_NAME with actual values)
+#     > USE [YOUR_DATABASE_NAME];
+#     > GO
+#     > DBCC SHRINKFILE ('LOG_FILE_NAME', 512);
+#     > GO
+#
+#     Note: Replace YOUR_DATABASE_NAME with your actual database name and LOG_FILE_NAME with the
+#           LogicalName from Step A (usually ends with '_Log')

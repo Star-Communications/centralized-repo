@@ -1,0 +1,110 @@
+name: Build, Tag, and Push Docker Image
+
+on:
+  workflow_call:
+    inputs:
+      container-registry-URL:
+        description: "URL of the container registry"
+        type: string
+        required: true
+      runs-on:
+        description: "The type of runner to use"
+        type: string
+        required: false
+        default: "ubuntu-latest"
+      project-name:
+        description: "Name of the project (used as Docker image name)"
+        type: string
+        required: true
+    secrets:
+      CONT_REG_USERNAME:
+        description: "Username for the container registry"
+        required: true
+      CONT_REG_PASSWORD:
+        description: "Password for the container registry"
+        required: true
+
+jobs:
+  build-and-push:
+    runs-on: ${{ inputs.runs-on }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Important for fetching tags
+
+      - name: Set up Git user
+        run: |
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "github-actions[bot]"
+
+      - name: Fetch all tags
+        run: git fetch --tags
+
+      - name: Get latest tag and increment
+        id: tag
+        run: |
+          latest_tag=$(git tag --list 'v*' --sort=-v:refname | head -n 1)
+          echo "Latest tag: $latest_tag"
+          commit_msg=$(git log -1 --pretty=%B)
+          echo "Commit message: $commit_msg"
+          if echo "$commit_msg" | grep -iq '\[bump major\]'; then
+            bump_part=major
+          elif echo "$commit_msg" | grep -iq '\[bump minor\]'; then
+            bump_part=minor
+          elif echo "$commit_msg" | grep -iq '\[bump patch\]'; then
+            bump_part=patch
+          else
+            bump_part=patch
+          fi
+          echo "Version bump: $bump_part"
+          if [[ $latest_tag =~ ^v([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
+            major="${BASH_REMATCH[1]}"
+            minor="${BASH_REMATCH[2]}"
+            patch="${BASH_REMATCH[3]}"
+            case "$bump_part" in
+              major)
+                major=$((major+1))
+                minor=0
+                patch=0
+                ;;
+              minor)
+                minor=$((minor+1))
+                patch=0
+                ;;
+              patch|*)
+                patch=$((patch+1))
+                ;;
+            esac
+            new_tag="v${major}.${minor}.${patch}"
+          else
+            new_tag="v1.0.0"
+          fi
+          echo "New tag: $new_tag"
+          echo "tag=$new_tag" >> $GITHUB_OUTPUT
+
+      - name: Create and push new tag
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git tag ${{ steps.tag.outputs.tag }}
+          git push origin ${{ steps.tag.outputs.tag }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to private registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ inputs.container-registry-URL }}
+          username: ${{ secrets.CONT_REG_USERNAME }}
+          password: ${{ secrets.CONT_REG_PASSWORD }}
+
+      - name: Build Docker image
+        run: |
+          docker build -t ${{ inputs.container-registry-URL }}/${{ inputs.project-name }}:${{ steps.tag.outputs.tag }} .
+
+      - name: Push Docker image
+        run: |
+          docker push ${{ inputs.container-registry-URL }}/${{ inputs.project-name }}:${{ steps.tag.outputs.tag }}
