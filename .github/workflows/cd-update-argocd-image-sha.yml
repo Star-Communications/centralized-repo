@@ -12,7 +12,7 @@ on:
         description: "Name of folder of project in git-ops repo"
         type: string
         required: true
-      
+
       # in case action is manually triggered, will need to specify which env to update
       values-file-env:
         description: "Environment suffix for values file (e.g. 'prod' for values-prod.yaml)"
