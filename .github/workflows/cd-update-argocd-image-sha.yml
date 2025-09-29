@@ -13,11 +13,6 @@ on:
         type: string
         required: true
 
-      values-file-env-suffix:
-        description: "Suffix for the environment values file"
-        type: string
-        required: true
-
 # disable permissions for all scopes (except for id-token)
 permissions:
   id-token: write
