@@ -1,0 +1,66 @@
+# Continuous Integration
+name: ci
+
+on:
+  workflow_dispatch:
+    inputs:
+      runs-on:
+        description: "Runner label(s) to run the job on"
+        required: false
+        default: "ubuntu-latest"
+
+#   push:
+#     branches: ["master"]
+
+#   pull_request:
+#     branches: ["master"]
+
+jobs:
+  pr-branch-convention:
+    if: github.event_name == 'pull_request'
+    uses: "Star-Communications/centralized-repo/.github/workflows/branch-name-convention.yml@master"
+    with:
+      # set to the name of the PR branch ("ref_name" is the branch/tag that triggered the workflow)
+      branch-name: ${{ github.event.pull_request.head.ref }}
+
+  build:
+    runs-on: ${{ inputs.runs-on || 'ubuntu-latest' }}
+
+    steps:
+      - name: Log runner label(s)
+        run: |
+          echo "runs-on: ${{ inputs.runs-on || 'ubuntu-latest' }}"
+
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Run linters
+        uses: wearerequired/lint-action@v2
+        with:
+          dotnet_format_dir: "./src"
+          dotnet_format: true
+
+      # ********** .NET Project **********
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: 5.0.x
+
+      - name: Restore .NET dependencies
+        run: dotnet restore "./src/tracker-mw.csproj"
+
+      - name: Build .NET
+        run: dotnet build "./src/tracker-mw.csproj" --no-restore
+
+      - name: Publish .NET
+        run: dotnet publish "./src/tracker-mw.csproj" -c Release -o ./publish -r win-x64
+
+      # ******************** Release Drafter ********************
+      - uses: release-drafter/release-drafter@master
+        id: release-drafter
+        with:
+          publish: false
+          commitish: master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

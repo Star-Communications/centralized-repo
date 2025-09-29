@@ -1,0 +1,40 @@
+# Deploy 'Tracker-MW' Windows Service (publish) using release zip from S3
+name: cd-deploy-ws
+
+on:
+  workflow_dispatch:
+    inputs:
+      build-release-runner:
+        description: "Runner where the release build will run"
+        type: string
+        required: false
+        default: "yasmin-machine-org"
+
+      deployment-runner:
+        description: "Runner label(s) to deploy to (separated by comma)"
+        required: true
+
+      target-version:
+        description: "Version to deploy (if not of latest)"
+        required: false
+        default: "latest"
+
+jobs:
+  # ---------- JOB ----------
+  build-release:
+    uses: ./.github/workflows/cd-prepare-release.yml
+    with:
+      build-release-runner: ${{ inputs.build-release-runner }}
+
+  # ---------- JOB ----------
+  deploy-ws:
+    needs: build-release
+    uses: Star-Communications/centralized-repo/.github/workflows/cd-deploy-ws.yml@master
+    with:
+      runs-on: ${{ inputs.deployment-runner }}
+      target-version: ${{ inputs.target-version }}
+      s3-bucket: "sc-releases-bucket"
+      s3-prefix: "tracker-mw"
+      windows-service-name: "SC-Tracker MW"
+    secrets:
+      AWS_ROLE_TO_ASSUME: "arn:aws:iam::977628787421:role/oidc-tracker-mw-download-release-s3-role"
