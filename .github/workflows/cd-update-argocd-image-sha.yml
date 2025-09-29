@@ -61,5 +61,5 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"  
           git add .
-          git commit -m "cd: update image tag for project '${{ inputs.gitOps-project-name }}' from branch '$BRANCH_NAME' to SHA '$GITHUB_SHA' [skip ci]"
+          git commit -m "cd: update image tag for project '${{ inputs.gitOps-project-name }}' from branch '${{ github.ref_name }}' to SHA '$GITHUB_SHA' [skip ci]"
           git push
