@@ -12,6 +12,13 @@ on:
         description: "Name of folder of project in git-ops repo"
         type: string
         required: true
+      
+      # in case action is manually triggered, will need to specify which env to update
+      values-file-env:
+        description: "Environment suffix for values file (e.g. 'prod' for values-prod.yaml)"
+        type: string
+        required: false
+        default: ""
 
 # disable permissions for all scopes (except for id-token)
 permissions:
@@ -30,7 +37,7 @@ jobs:
 
       - name: Update image tag in Helm values
         env:
-          BRANCH_NAME: ${{ github.ref_name }}
+          BRANCH_NAME: ${{ inputs.values-file-env != '' && inputs.values-file-env || github.ref_name }}
           GITHUB_SHA: ${{ github.sha }}
         run: |
           echo "Triggered by branch: $BRANCH_NAME"
