@@ -1,0 +1,58 @@
+name: CD - Update ArgoCD Image SHA
+
+on:
+  workflow_call:
+    inputs:
+      runs-on:
+        description: "Runner to use for the job"
+        type: string
+        required: true
+
+      gitOps-project-name:
+        description: "Name of folder of project in git-ops repo"
+        type: string
+        required: true
+
+      values-file-env-suffix:
+        description: "Suffix for the environment values file"
+        type: string
+        required: true
+
+# disable permissions for all scopes (except for id-token)
+permissions:
+  id-token: write
+
+jobs:
+  update-argocd-image-sha:
+    runs-on: ${{ inputs.runs-on }}
+    steps:
+      - name: Checkout ArgoCD repo
+        uses: actions/checkout@v4
+        with:
+          repository: Star-Communications/git-ops
+          token: ${{ secrets.ARGOCD_REPO_TOKEN }}
+          ref: main # or the branch ArgoCD watches
+
+      - name: Update image tag in Helm values
+        env:
+          BRANCH_NAME: ${{ github.ref_name }}
+          GITHUB_SHA: ${{ github.sha }}
+        run: |
+          echo "Triggered by branch: $BRANCH_NAME"
+          echo "New image tag (SHA): $GITHUB_SHA"
+
+          for file in k8s/manifests/starcom-projects/${{ inputs.gitOps-project-name }}/values-$BRANCH_NAME*.yaml; do
+            echo "Updating $file"
+            sed -i "s|tag:.*|tag: \"$GITHUB_SHA\"|g" "$file"
+          done
+
+          # Always update main values.yaml if you want
+          # sed -i "s|repository:.*|repository: |g" k8s/manifests/auth-server/values.yaml
+
+      - name: Commit and push changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"  
+          git add .
+          git commit -m "Update image tag to $GITHUB_SHA [ci skip]"
+          git push
