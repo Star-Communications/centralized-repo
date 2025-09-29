@@ -1,0 +1,38 @@
+name: cd-deploy-image
+
+on:
+  workflow_dispatch:
+    inputs:
+      build-runner:
+        description: "Runner where the release build will run"
+        type: string
+        required: false
+        default: "ubuntu-latest"
+
+  workflow_call:
+    inputs:
+      build-runner:
+        description: "Runner where build release will run"
+        type: string
+        required: true
+
+      api-project-version:
+        description: "API project version"
+        type: string
+        required: true
+
+      spa-project-version:
+        description: "SPA project version"
+        type: string
+        required: true
+
+jobs:
+  # ---------- JOB ----------
+  deploy-image:
+    uses: Star-Communications/centralized-repo/.github/workflows/cd-deploy-image.yml@main
+    with:
+      runs-on: ${{ inputs.build-runner }}
+      api-project-version: ${{ inputs.api-project-version }}
+      spa-project-version: ${{ inputs.spa-project-version }}
+      project-bundle-name: facility
+      container-registry-URL: "localhost:5000"

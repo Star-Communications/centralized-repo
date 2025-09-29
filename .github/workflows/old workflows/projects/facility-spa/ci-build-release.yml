@@ -1,0 +1,53 @@
+# Prepare build (release) files and upload to S3
+name: ci-build-release
+
+on:
+  workflow_call:
+    inputs:
+      build-release-runner:
+        description: "Runner where build release will run"
+        type: string
+        required: true
+
+  workflow_dispatch:
+    inputs:
+      build-release-runner:
+        description: "Runner where the release build will run"
+        type: string
+        required: false
+        default: "yasmin-machine-org"
+
+jobs:
+  # ---------- JOB ----------
+  pre-build-release:
+    uses: Star-Communications/centralized-repo/.github/workflows/cd-pre-build-release.yml@main
+    with:
+      runs-on: ${{ inputs.build-release-runner }}
+    # the job returns the following outputs:
+    #   is-new-release-job-output:
+
+  # ---------- JOB ----------
+  build-release:
+    uses: Star-Communications/centralized-repo/.github/workflows/cd-build-vue.yml@main
+    needs: pre-build-release
+    # fail so that not to build release on same commit again
+    if: ${{ needs.pre-build-release.outputs.is-new-release-job-output == 'true' }}
+    with:
+      build-runner: ${{ inputs.build-release-runner }}
+      node-version: "20.x"
+      project-name: facility-cms
+  # the job returns the following outputs:
+  #   release-file
+
+  # ---------- JOB ----------
+  upload-release:
+    needs: build-release
+    uses: Star-Communications/centralized-repo/.github/workflows/upload-s3.yml@main
+    with:
+      runs-on: ${{ inputs.build-release-runner }}
+      # if running on 'ubuntu-latest', upload file will be downloaded from artifact (upload folder path won't be used)
+      upload-file-path: "./temp/uploads/${{ needs.build-release.outputs.release-file}}"
+      s3-bucket-name: "sc-releases-bucket"
+      s3-prefix: "facility-cms"
+    secrets:
+      AWS_ROLE_TO_ASSUME: "arn:aws:iam::977628787421:role/oidc-release-upload-role"

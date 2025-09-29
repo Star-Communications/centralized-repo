@@ -1,0 +1,47 @@
+# Deploy 'Facility-CMS' (container) using release zip from S3
+name: cd-deploy-container
+
+on:
+  workflow_dispatch:
+    inputs:
+      build-release-runner:
+        description: "Runner that will build the project for the release"
+        type: string
+        required: false
+        default: "ubuntu-latest"
+
+      deployment-runner:
+        description: "Runner label(s) to deploy to (separated by comma)"
+        type: string
+        required: true
+
+      linux-user:
+        description: "Linux user to use for deployment"
+        type: string
+        required: false
+        default: "devteam"
+
+      target-version:
+        description: "Version to deploy (if not of latest)"
+        required: false
+        default: "latest"
+
+jobs:
+  # ---------- JOB ----------
+  build-release:
+    uses: ./.github/workflows/cd-build-release.yml
+    with:
+      build-release-runner: ${{ inputs.build-release-runner }}
+
+  # ----------- JOB -----------
+  deploy-container:
+    uses: Star-Communications/centralized-repo/.github/workflows/cd-deploy-container.yml@main
+    with:
+      runs-on: ${{ inputs.deployment-runner }}
+      linux-user: ${{ inputs.linux-user }}
+      target-version: ${{ inputs.target-version }}
+      s3-bucket: "sc-releases-bucket"
+      project-name: "facility-cms"
+      project-bundle-name: "facility"
+    secrets:
+      AWS_ROLE_TO_ASSUME: "arn:aws:iam::977628787421:role/oidc-release-upload-role"
