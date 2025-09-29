@@ -12,6 +12,19 @@ on:
         description: "Name of the project"
         type: string
         required: true
+    
+    secrets:
+      CONT_REG_USERNAME:
+        description: "Username for the container registry"
+        required: true
+
+      CONT_REG_PASSWORD:
+        description: "Password for the container registry"
+        required: true
+
+      ALL_REPOS_READONLY:
+        description: "Read-only token for all repos"
+        required: true
 
 # disable permissions for all scopes (except for id-token)
 permissions:
