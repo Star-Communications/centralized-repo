@@ -1,0 +1,41 @@
+# Deploy 'Tracker-Api' (publish) as IIS website application using release zip from S3
+name: cd-deploy-iis
+
+on:
+  workflow_dispatch:
+    inputs:
+      build-release-runner:
+        description: "Runner where the release build will run"
+        type: string
+        required: false
+        default: "ubuntu-latest"
+
+      deployment-runner:
+        description: "Runner label(s) to deploy to (separated by comma)"
+        required: true
+
+      target-version:
+        description: "Version to deploy (if not of latest)"
+        required: false
+        default: "latest"
+
+jobs:
+  # ---------- JOB ----------
+  build-release:
+    uses: ./.github/workflows/cd-prepare-release.yml
+    with:
+      build-release-runner: ${{ inputs.build-release-runner }}
+
+  # ---------- JOB ----------
+  deploy-iis:
+    uses: Star-Communications/centralized-repo/.github/workflows/cd-deploy-iis.yml@master
+    needs: build-release
+    with:
+      runs-on: ${{ inputs.deployment-runner }}
+      target-version: ${{ inputs.target-version }}
+      s3-bucket: "sc-releases-bucket"
+      s3-prefix: "tracker-api"
+      iis-website-name: "SC-Tracker"
+      iis-application-name: "api"
+    secrets:
+      AWS_ROLE_TO_ASSUME: "arn:aws:iam::977628787421:role/oidc-tracker-api-download-release-s3-role"
