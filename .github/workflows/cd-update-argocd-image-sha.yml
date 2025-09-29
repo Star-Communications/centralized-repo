@@ -1,4 +1,4 @@
-name: CD - Update ArgoCD Image SHA
+name: CD - Update Image SHA for ArgoCD
 
 on:
   workflow_call:
