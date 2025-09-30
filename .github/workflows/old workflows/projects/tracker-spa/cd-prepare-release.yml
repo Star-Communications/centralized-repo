@@ -1,0 +1,146 @@
+# Prepare build (release) files and upload to S3
+name: cd-prepare-release
+
+on:
+  workflow_call:
+    inputs:
+      build-release-runner:
+        description: "Runner where build release will run"
+        type: string
+        required: true
+
+  workflow_dispatch:
+    inputs:
+      build-release-runner:
+        description: "Runner where the release build will run"
+        type: string
+        required: false
+        default: "yasmin-machine-org"
+
+jobs:
+  # ---------- JOB ----------
+  pre-release-checks:
+    uses: Star-Communications/centralized-repo/.github/workflows/cd-pre-release-checks.yml@master
+    with:
+      runs-on: ${{ inputs.build-release-runner }}
+    # the job returns the following outputs:
+    #   is-new-release-job-output:
+
+  # ---------- JOB ----------
+  build-release:
+    runs-on: ${{ inputs.build-release-runner }}
+
+    needs: pre-release-checks
+
+    # fail so that not to build release on same commit again
+    if: ${{ needs.pre-release-checks.outputs.is-new-release-job-output == 'true' }}
+
+    defaults:
+      run:
+        shell: pwsh # use powershell as default shell for all steps
+
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      # ********** VUE Project **********
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "16.x"
+          cache: "npm"
+          # need to specify the path to the package-lock.json file to ensure the cache is invalidated when the lockfile changes
+          cache-dependency-path: ./package-lock.json
+
+      # TODO: optimize this step by caching the node_modules folder
+      - name: Build VUE
+        run: |
+          npm ci
+          npm run build
+          npm run build-docker
+
+      # ********** Release Drafter **********
+      # TODO: prevent creating a release if there are no changes !!!
+      - uses: release-drafter/release-drafter@master
+        id: release-drafter
+        with:
+          publish: true
+          commitish: master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # ********** Prepare release folder & zip it **********
+      - name: Create release folder
+        run: mkdir "./tracker-cms-${{ steps.release-drafter.outputs.name }}"
+
+      - name: Copy 'web.config' to 'dist' folder
+        shell: pwsh
+        run: |
+          if ("${{ runner.os }}" -eq 'Linux') {
+            cp "./web.config" "./dist/" -f
+            cp "./web.config" "./dist-docker/" -f
+          }
+          else {
+            cp "./web.config" "./dist/" -Force
+            cp "./web.config" "./dist-docker/" -Force
+          }
+
+      - name: Copy 'dist' build folder to release folder
+        run: |
+          cp -r "./dist" "./tracker-cms-${{ steps.release-drafter.outputs.name }}/"
+          cp -r "./dist-docker" "./tracker-cms-${{ steps.release-drafter.outputs.name }}/"
+
+      - name: Copy docker files (excluding dev) to release folder
+        run: |
+          if ("${{ runner.os }}" -eq 'Linux') {
+            # 'rsync' is not a built-in command in Windows PowerShell
+            rsync -va --exclude="*.dev*" "./docker-files" "./tracker-cms-${{ steps.release-drafter.outputs.name }}/"
+          }
+          else {
+            # '-Exclude' is not a valid option for the cp command on Linux.
+            cp -r "./docker-files" "./tracker-cms-${{ steps.release-drafter.outputs.name }}/" -Exclude "*.dev*"
+          }
+
+      - name: Zip release folder
+        run: Compress-Archive -Path "./tracker-cms-${{ steps.release-drafter.outputs.name }}/*" -DestinationPath "./tracker-cms-${{ steps.release-drafter.outputs.name }}.zip"
+
+      # ********** Upload zipped release to Artifact **********
+
+      - name: Upload release to Artifact
+        # upload to artifact only if running on 'ubuntu-latest'
+        if: ${{ inputs.build-release-runner == 'ubuntu-latest' }}
+        uses: actions/upload-artifact@v3
+        with:
+          name: "tracker-cms-${{ steps.release-drafter.outputs.name }}.zip"
+          path: "./tracker-cms-${{ steps.release-drafter.outputs.name }}.zip"
+          retention-days: 1
+          if-no-files-found: error
+
+      - name: Move release folder to 'temp/uploads' folder
+        if: ${{ inputs.build-release-runner != 'ubuntu-latest' }}
+        run: |
+          # STEP 1: Create "temp/uploads" folder if it doesn't exist
+          if (!(Test-Path -Path "./temp/uploads")) {
+            New-Item -ItemType Directory -Force -Path "./temp/uploads"
+          }
+
+          # STEP 2: Move release folder to "temp/uploads" folder
+          mv "./tracker-cms-${{ steps.release-drafter.outputs.name }}.zip" "./temp/uploads/tracker-cms-${{ steps.release-drafter.outputs.name }}.zip"
+
+    # Set job output to be used in next job
+    outputs:
+      release-file-name: "tracker-cms-${{ steps.release-drafter.outputs.name }}.zip"
+
+  # ---------- SECOND JOB ----------
+  agent-upload-release:
+    needs: build-release
+    uses: Star-Communications/centralized-repo/.github/workflows/upload-s3.yml@master
+    with:
+      runs-on: ${{ inputs.build-release-runner }}
+      # if running on 'ubuntu-latest', upload file will be downloaded from artifact (upload folder path won't be used)
+      upload-file-path: "./temp/uploads/${{ needs.build-release.outputs.release-file-name}}"
+      s3-bucket-name: "sc-releases-bucket"
+      s3-prefix: "tracker-cms"
+    secrets:
+      AWS_ROLE_TO_ASSUME: "arn:aws:iam::977628787421:role/oidc-release-upload-role"

@@ -1,0 +1,66 @@
+# Deploy 'Tracker-CMS' (container) using release zip from S3
+name: cd-deploy-container
+
+on:
+  workflow_dispatch:
+    inputs:
+      build-release-runner:
+        description: "Runner where the release build will run"
+        type: string
+        required: false
+        default: "yasmin-machine-org"
+
+      deployment-runner:
+        description: "Runner label(s) to deploy to (separated by comma)"
+        required: true
+
+      target-version:
+        description: "Version to deploy (if not of latest)"
+        required: false
+        default: "latest"
+
+jobs:
+  # ---------- JOB ----------
+  build-release:
+    uses: ./.github/workflows/cd-prepare-release.yml
+    with:
+      build-release-runner: ${{ inputs.build-release-runner }}
+
+  # ----------- 1st job (set-vars) -----------
+  # log the outputs of the previous job & set outputs for the next job
+  set-vars:
+    runs-on: ${{ inputs.deployment-runner }}
+
+    needs: build-release
+
+    outputs:
+      project-folder-path: ${{ steps.set-output-vars.outputs.project-folder-path }}
+
+    steps:
+      - name: Set output variables for next job (depending on the runner's OS)
+        id: set-output-vars
+        shell: pwsh
+        run: |
+          if ("${{ runner.os }}" -eq 'Linux') {
+            $projFolderPath = "/home/ubuntu/SC-TRACKER/INSTALLATION FILES/tracker-cms"
+          }
+          else {
+            $projFolderPath = "C:/SC-TRACKER/INSTALLATION FILES/tracker-cms"
+          }
+
+          echo "project-folder-path=$projFolderPath" >> $env:GITHUB_OUTPUT
+          echo "projFolderPath = $projFolderPath"
+
+  # ----------- 2nd job (deploy-container) -----------
+  deploy-container:
+    uses: Star-Communications/centralized-repo/.github/workflows/cd-deploy-container.yml@master
+    needs: set-vars
+    with:
+      runs-on: ${{ inputs.deployment-runner }}
+      target-version: ${{ inputs.target-version }}
+      s3-bucket: "sc-releases-bucket"
+      s3-prefix: "tracker-cms"
+      project-folder-path: "${{ needs.set-vars.outputs.project-folder-path }}"
+      docker-compose-file-name: "docker-compose.tracker-cms.yml"
+    secrets:
+      AWS_ROLE_TO_ASSUME: "arn:aws:iam::977628787421:role/oidc-tracker-cms-download-release-s3-role"
