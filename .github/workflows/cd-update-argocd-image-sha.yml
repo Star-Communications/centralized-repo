@@ -31,7 +31,7 @@ permissions:
 
 jobs:
   update-argocd-image-sha:
-    runs-on: ${{ inputs.runs-on }}
+    runs-on: ${{ inputs.runs-on || 'ubuntu-latest' }}
     steps:
       - name: Checkout ArgoCD repo
         uses: actions/checkout@v4
