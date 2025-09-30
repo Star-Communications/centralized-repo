@@ -53,11 +53,11 @@ jobs:
           cache-dependency-path: '**/package-lock.json'
 
       - name: Install dependencies
-        working-directory: ./${{ inputs.project-name }}
-        run: npm ci
+        # working-directory: ./${{ inputs.project-name }}
+        run: npm run install:all
 
       - name: Build cms project
-        working-directory: ./${{ inputs.project-name }}
+        # working-directory: ./${{ inputs.project-name }}
         run: npm run build
 
       - name: Configure AWS Credentials
