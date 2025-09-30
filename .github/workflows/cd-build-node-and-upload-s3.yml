@@ -1,0 +1,68 @@
+name: CD - Build Node Project & Upload to S3
+
+on:
+  workflow_call:
+    inputs:
+      runs-on:
+        description: "Runner to use for the job"
+        type: string
+        required: true
+
+      project-name:
+        description: "Name of the project"
+        type: string
+        required: true
+    
+      node-version:
+        description: "Node.js version to use"
+        type: string
+        required: true
+    
+    secrets:
+      ALL_REPOS_READONLY:
+        description: "Read-only token for all repos"
+        required: true
+
+# disable permissions for all scopes (except for id-token)
+permissions:
+  id-token: write
+
+jobs:
+  build-and-push:
+    runs-on: ${{ inputs.runs-on || 'ubuntu-latest' }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          # This is important to get the code from the vue-shared submodule
+          submodules: 'recursive'
+          token: ${{ secrets.ALL_REPOS_READONLY }}
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.node-version || '20' }}
+          cache: 'npm'
+          # Caching dependencies for all package-lock.json files to speed up future builds
+          cache-dependency-path: '**/package-lock.json'
+
+      - name: Install dependencies
+        working-directory: ./${{ inputs.project-name }}
+        run: npm ci
+
+      - name: Build cms project
+        working-directory: ./${{ inputs.project-name }}
+        run: npm run build
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: eu-central-1
+          role-to-assume: arn:aws:iam::977628787421:role/oidc-spa-bucket-rw-role
+          role-session-name: UploadSpaToS3
+
+      - name: Deploy to S3
+        env:
+          DEPLOY_ENV: ${{ github.ref_name }}
+        run: aws s3 sync ./dist s3://sc-spa-bucket/${{ inputs.project-name }}/$DEPLOY_ENV --delete
