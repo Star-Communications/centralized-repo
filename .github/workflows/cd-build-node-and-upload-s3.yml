@@ -17,6 +17,11 @@ on:
         description: "Node.js version to use"
         type: string
         required: true
+      
+      aws-role:
+        description: "AWS Role ARN to assume for uploading to S3"
+        type: string
+        required: true
     
     secrets:
       ALL_REPOS_READONLY:
@@ -59,7 +64,7 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-region: eu-central-1
-          role-to-assume: arn:aws:iam::977628787421:role/oidc-spa-bucket-rw-role
+          role-to-assume: ${{ inputs.aws-role }}
           role-session-name: UploadSpaToS3
 
       - name: Deploy to S3
