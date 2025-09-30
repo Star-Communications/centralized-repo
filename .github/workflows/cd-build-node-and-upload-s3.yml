@@ -33,7 +33,7 @@ permissions:
   id-token: write
 
 jobs:
-  build-and-push:
+  build-and-upload-s3:
     runs-on: ${{ inputs.runs-on || 'ubuntu-latest' }}
 
     steps:
