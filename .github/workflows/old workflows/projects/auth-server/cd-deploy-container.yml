@@ -1,0 +1,52 @@
+# Continuous Deployment - prepare build files & upload to S3
+name: cd-deploy-container
+
+on:
+  workflow_dispatch:
+    inputs:
+      build-runner:
+        description: "Runner that will build the project for the release"
+        type: string
+        required: false
+        default: "ubuntu-latest"
+
+      deployment-runner:
+        description: "Runner(s) where will deploy the release (comma separated)"
+        type: string
+        required: false
+        default: "dev-on-prem"
+
+      linux-user:
+        description: "Linux user to use for deployment"
+        type: string
+        required: false
+        default: "devteam"
+
+      target-version:
+        description: "Version to deploy (if not of latest)"
+        required: false
+        default: "latest"
+
+env:
+  project-name: "auth-server"
+
+jobs:
+  # ---------- JOB ----------
+  build-release:
+    uses: ./.github/workflows/ci-build-release.yml
+    with:
+      build-runner: ${{ inputs.build-runner }}
+
+  # ---------- JOB ----------
+  deploy-container:
+    uses: Star-Communications/centralized-repo/.github/workflows/cd-deploy-container.yml@main
+    # needs: build-release
+    with:
+      runs-on: ${{ inputs.deployment-runner }}
+      linux-user: ${{ inputs.linux-user }}
+      target-version: ${{ inputs.target-version }}
+      s3-bucket: "sc-releases-bucket"
+      project-name: "auth-server"
+      project-bundle-name: "Auth"
+    secrets:
+      AWS_ROLE_TO_ASSUME: "arn:aws:iam::977628787421:role/oidc-auth-server-download-release-s3-role"

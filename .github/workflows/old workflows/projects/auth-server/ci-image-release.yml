@@ -1,0 +1,32 @@
+# Continuous Integration - build and push Docker image
+name: ci-image-release
+
+on:
+  workflow_dispatch:
+    inputs:
+      build-runner:
+        description: "Runner where the release build will run"
+        type: string
+        required: false
+        default: "ubuntu-latest"
+
+  workflow_call:
+    inputs:
+      build-runner:
+        description: "Runner where build release will run"
+        type: string
+        required: true
+
+jobs:
+  # ---------- JOB ----------
+  image-release:
+    uses: Star-Communications/centralized-repo/.github/workflows/ci-push-image.yml@main
+    with:
+      runs-on: ${{ inputs.build-runner }}
+      api-project-name: auth-server
+      project-bundle-name: auth
+      container-registry-URL: "container-reg.star-com.net"
+    secrets:
+      AWS_ROLE_TO_ASSUME: "arn:aws:iam::977628787421:role/oidc-release-upload-role"
+      CONT_REG_USERNAME: ${{ secrets.CONT_REG_USERNAME }}
+      CONT_REG_PASSWORD: ${{ secrets.CONT_REG_PASSWORD }}

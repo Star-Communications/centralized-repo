@@ -1,0 +1,51 @@
+# Continuous Deployment - prepare build files & upload to S3
+name: ci-build-release
+
+on:
+  workflow_call:
+    inputs:
+      build-runner:
+        description: "Runner where build release will run"
+        type: string
+        required: true
+
+  workflow_dispatch:
+    inputs:
+      build-runner:
+        description: "Runner where the release build will run"
+        type: string
+        required: false
+        default: "ubuntu-latest"
+
+jobs:
+  # ---------- JOB ----------
+  pre-build-release:
+    uses: Star-Communications/centralized-repo/.github/workflows/cd-pre-build-release.yml@main
+    with:
+      runs-on: ${{ inputs.build-runner }}
+    # this job returns the following outputs: "is-new-release-job-output" (true/false)
+
+  # ---------- JOB ----------
+  build-release:
+    uses: Star-Communications/centralized-repo/.github/workflows/cd-build-dotnet.yml@main
+    # continue with build only if this is a new release (avoid build same release multiple times)
+    needs: pre-build-release
+    if: ${{ needs.pre-build-release.outputs.is-new-release-job-output == 'true' }}
+    with:
+      build-runner: ${{ inputs.build-runner }}
+      dotnet-version: "8"
+      project-name: auth-server
+    # this job returns the following outputs: "release-file"
+
+  # ---------- JOB ----------
+  upload-release:
+    needs: build-release
+    uses: Star-Communications/centralized-repo/.github/workflows/upload-s3.yml@main
+    with:
+      runs-on: ${{ inputs.build-runner }}
+      # if running on 'ubuntu-latest', upload file will be downloaded from artifact (upload folder path won't be used)
+      upload-file-path: "./temp/uploads/${{ needs.build-release.outputs.release-file }}"
+      s3-bucket-name: "sc-releases-bucket"
+      s3-prefix: "auth-server"
+    secrets:
+      AWS_ROLE_TO_ASSUME: "arn:aws:iam::977628787421:role/oidc-release-upload-role"
