@@ -70,7 +70,7 @@ jobs:
 
       - name: Build Docker image
         if: steps.image-check.outputs.exists == 'false'
-        run: docker build -t harbor.star-com.net/starcom/${{ inputs.project-name }}:${{ github.sha }} -f ./docker-files/Dockerfile.${{ inputs.project-name }}.prod .
+        run: docker build --no-cache -t harbor.star-com.net/starcom/${{ inputs.project-name }}:${{ github.sha }} -f ./docker-files/Dockerfile.${{ inputs.project-name }}.prod .
 
       - name: Push Docker image
         if: steps.image-check.outputs.exists == 'false'
