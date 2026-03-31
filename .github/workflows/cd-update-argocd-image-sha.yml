@@ -7,13 +7,10 @@ on:
         description: "Runner to use for the job"
         type: string
         required: true
-
       gitOps-project-name:
         description: "Name of folder of project in git-ops repo"
         type: string
         required: true
-
-      # in case action is manually triggered, will need to specify which env to update
       values-file-env:
         description: "Environment suffix for values file (e.g. 'prod' for values-prod.yaml)"
         type: string
@@ -38,28 +35,35 @@ jobs:
         with:
           repository: Star-Communications/git-ops
           token: ${{ secrets.ARGOCD_REPO_TOKEN }}
-          ref: main # or the branch ArgoCD watches
+          ref: main 
 
       - name: Update image tag in Helm values
         env:
-          BRANCH_NAME: ${{ inputs.values-file-env != '' && inputs.values-file-env || github.ref_name }}
+          # Now relying purely on the input, since caller handles the fallback
+          ENV_NAME: ${{ inputs.values-file-env }}
           GITHUB_SHA: ${{ github.sha }}
         run: |
-          echo "Triggered by branch: $BRANCH_NAME"
+          echo "Triggered for environment: $ENV_NAME"
           echo "New image tag (SHA): $GITHUB_SHA"
 
-          for file in k8s/manifests/starcom-projects/${{ inputs.gitOps-project-name }}/values-$BRANCH_NAME*.yaml; do
+          # Prevent bash from passing the literal string to sed if no files exist
+          shopt -s nullglob 
+          
+          for file in k8s/manifests/starcom-projects/${{ inputs.gitOps-project-name }}/values-$ENV_NAME*.yaml; do
             echo "Updating $file"
             sed -i "s|tag:.*|tag: \"$GITHUB_SHA\"|g" "$file"
           done
-
-          # Always update main values.yaml if you want
-          # sed -i "s|repository:.*|repository: |g" k8s/manifests/auth-server/values.yaml
 
       - name: Commit and push changes
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"  
           git add .
-          git commit -m "[github-actions] cd: update image tag for project '${{ inputs.gitOps-project-name }}' from branch '${{ github.ref_name }}' to SHA '$GITHUB_SHA' [skip ci]"
-          git push
+          
+          # Only commit and push if there are actual changes
+          if [[ -n "$(git status --porcelain)" ]]; then
+            git commit -m "[github-actions] cd: update image tag for project '${{ inputs.gitOps-project-name }}' for env '$ENV_NAME' to SHA '$GITHUB_SHA' [skip ci]"
+            git push
+          else
+            echo "No changes detected. The GitOps repo is already up to date with this SHA."
+          fi
