@@ -12,17 +12,17 @@ on:
         description: "Name of the project"
         type: string
         required: true
-    
+
       node-version:
         description: "Node.js version to use"
         type: string
         required: true
-      
+
       aws-role:
         description: "AWS Role ARN to assume for uploading to S3"
         type: string
         required: true
-    
+
     secrets:
       ALL_REPOS_READONLY:
         description: "Read-only token for all repos"
@@ -41,16 +41,16 @@ jobs:
         uses: actions/checkout@v4
         with:
           # This is important to get the code from the vue-shared submodule
-          submodules: 'recursive'
+          submodules: "recursive"
           token: ${{ secrets.ALL_REPOS_READONLY }}
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ inputs.node-version || '20' }}
-          cache: 'npm'
+          cache: "npm"
           # Caching dependencies for all package-lock.json files to speed up future builds
-          cache-dependency-path: '**/package-lock.json'
+          cache-dependency-path: "**/package-lock.json"
 
       - name: Install dependencies
         # working-directory: ./${{ inputs.project-name }}
@@ -70,4 +70,4 @@ jobs:
       - name: Deploy to S3
         env:
           DEPLOY_ENV: ${{ github.ref_name }}
-        run: aws s3 sync ./dist s3://sc-spa-bucket/${{ inputs.project-name }}/$DEPLOY_ENV --delete
+        run: aws s3 sync ./dist s3://${{ inputs.bucket-name }}/${{ inputs.project-name }}/$DEPLOY_ENV --delete
