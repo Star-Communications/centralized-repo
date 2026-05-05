@@ -47,6 +47,7 @@ jobs:
         with:
           # This is important to get the code from the vue-shared submodule
           submodules: "recursive"
+          fetch-depth: 0
           token: ${{ secrets.ALL_REPOS_READONLY }}
 
       - name: Set up Node.js
