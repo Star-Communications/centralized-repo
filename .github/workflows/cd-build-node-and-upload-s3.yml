@@ -58,6 +58,9 @@ jobs:
           # Caching dependencies for all package-lock.json files to speed up future builds
           cache-dependency-path: "**/package-lock.json"
 
+      - name: Fix bin permissions
+        run: find . -path "*/node_modules/.bin/*" -exec chmod +x {} +
+
       - name: Install dependencies
         # working-directory: ./${{ inputs.project-name }}
         run: npm run install:all
