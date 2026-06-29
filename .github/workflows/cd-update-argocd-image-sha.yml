@@ -29,26 +29,26 @@ permissions:
 jobs:
   update-argocd-image-sha:
     runs-on: ${{ inputs.runs-on || 'ubuntu-latest' }}
+    env:
+      # Now relying purely on the input, since caller handles the fallback
+      ENV_NAME: ${{ inputs.values-file-env }}
+      GITHUB_SHA: ${{ github.sha }}
     steps:
       - name: Checkout ArgoCD repo
         uses: actions/checkout@v4
         with:
           repository: Star-Communications/git-ops
           token: ${{ secrets.ARGOCD_REPO_TOKEN }}
-          ref: main 
+          ref: main
 
       - name: Update image tag in Helm values
-        env:
-          # Now relying purely on the input, since caller handles the fallback
-          ENV_NAME: ${{ inputs.values-file-env }}
-          GITHUB_SHA: ${{ github.sha }}
         run: |
           echo "Triggered for environment: $ENV_NAME"
           echo "New image tag (SHA): $GITHUB_SHA"
 
           # Prevent bash from passing the literal string to sed if no files exist
           shopt -s nullglob 
-          
+
           for file in k8s/manifests/starcom-projects/${{ inputs.gitOps-project-name }}/values-$ENV_NAME*.yaml; do
             echo "Updating $file"
             sed -i "s|tag:.*|tag: \"$GITHUB_SHA\"|g" "$file"
@@ -59,7 +59,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"  
           git add .
-          
+
           # Only commit and push if there are actual changes
           if [[ -n "$(git status --porcelain)" ]]; then
             git commit -m "[github-actions] cd: update image tag for project '${{ inputs.gitOps-project-name }}' for env '$ENV_NAME' to SHA '$GITHUB_SHA' [skip ci]"
