@@ -94,7 +94,6 @@ jobs:
             '{
               embeds: [{
                 title: ("Updating " + $status + " — " + $project),
-                url: $url,
                 description: ("[View workflow run](" + $url + ")"),
                 color: $color,
                 fields: [
