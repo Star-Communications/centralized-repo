@@ -105,7 +105,7 @@ jobs:
                   {
                     name: "Branch",
                     value: $branch,
-                    inline: true
+                    inline: false
                   },
                   {
                     name: "Commit Title",
@@ -115,7 +115,7 @@ jobs:
                   {
                     name: "Commit SHA",
                     value: $sha,
-                    inline: true
+                    inline: false
                   },
                   {
                     name: "Triggered by",
