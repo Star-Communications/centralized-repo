@@ -63,6 +63,8 @@ jobs:
           DEPLOY_RESULT: ${{ inputs.deploy-result }}
           PIPELINE_STATUS: ${{ steps.status.outputs.status }}
           EMBED_COLOR: ${{ steps.status.outputs.color }}
+          REPOSITORY: ${{ github.repository }}
+          BRANCH: ${{ github.head_ref || github.ref_name }}
           COMMIT_SHA: ${{ github.sha }}
           COMMIT_TITLE: ${{ github.event.head_commit.message || github.event.pull_request.title || github.workflow }}
           ACTOR: ${{ github.actor }}
