@@ -110,7 +110,7 @@ jobs:
                   {
                     name: "Commit Title",
                     value: (if $commit_title == "" then "Not available" else $commit_title end),
-                    inline: false
+                    inline: true
                   },
                   {
                     name: "Commit SHA",
