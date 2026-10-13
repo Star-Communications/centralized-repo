@@ -95,6 +95,7 @@ jobs:
               embeds: [{
                 title: ("Updating " + $status + " — " + $project),
                 url: $url,
+                description: ("[View workflow run](" + $url + ")"),
                 color: $color,
                 fields: [
                   {
@@ -110,12 +111,12 @@ jobs:
                   {
                     name: "Commit Title",
                     value: (if $commit_title == "" then "Not available" else $commit_title end),
-                    inline: true
+                    inline: false
                   },
                   {
                     name: "Commit SHA",
                     value: $sha,
-                    inline: true
+                    inline: false
                   },
                   {
                     name: "Triggered by",
