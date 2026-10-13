@@ -115,7 +115,7 @@ jobs:
                   {
                     name: "Commit SHA",
                     value: $sha,
-                    inline: false
+                    inline: true
                   },
                   {
                     name: "Triggered by",
