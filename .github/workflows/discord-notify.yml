@@ -1,0 +1,106 @@
+name: Discord Notification
+
+on:
+  workflow_call:
+    inputs:
+      project-name:
+        description: Application name
+        required: true
+        type: string
+
+      environment:
+        description: Target environment
+        required: true
+        type: string
+
+      build-result:
+        description: Result of the CI build job
+        required: true
+        type: string
+
+      deploy-result:
+        description: Result of the CD deployment job
+        required: true
+        type: string
+
+    secrets:
+      DISCORD_WEBHOOK_URL:
+        required: true
+
+jobs:
+  notify:
+    name: Send Discord Notification
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Determine pipeline status
+        id: status
+        env:
+          BUILD_RESULT: ${{ inputs.build-result }}
+          DEPLOY_RESULT: ${{ inputs.deploy-result }}
+        shell: bash
+        run: |
+          if [[ "$BUILD_RESULT" == "failure" || "$DEPLOY_RESULT" == "failure" ]]; then
+            echo "status=FAILURE" >> "$GITHUB_OUTPUT"
+            echo "color=15158332" >> "$GITHUB_OUTPUT"
+          elif [[ "$BUILD_RESULT" == "cancelled" || "$DEPLOY_RESULT" == "cancelled" ]]; then
+            echo "status=CANCELLED" >> "$GITHUB_OUTPUT"
+            echo "color=9807270" >> "$GITHUB_OUTPUT"
+          elif [[ "$BUILD_RESULT" == "success" && "$DEPLOY_RESULT" == "success" ]]; then
+            echo "status=SUCCESS" >> "$GITHUB_OUTPUT"
+            echo "color=3066993" >> "$GITHUB_OUTPUT"
+          else
+            echo "status=INCOMPLETE" >> "$GITHUB_OUTPUT"
+            echo "color=9807270" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Send notification to Discord
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          PROJECT_NAME: ${{ inputs.project-name }}
+          ENVIRONMENT: ${{ inputs.environment }}
+          BUILD_RESULT: ${{ inputs.build-result }}
+          DEPLOY_RESULT: ${{ inputs.deploy-result }}
+          PIPELINE_STATUS: ${{ steps.status.outputs.status }}
+          EMBED_COLOR: ${{ steps.status.outputs.color }}
+          COMMIT_SHA: ${{ github.sha }}
+          ACTOR: ${{ github.actor }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        shell: bash
+        run: |
+          if [[ -z "$DISCORD_WEBHOOK_URL" ]]; then
+            echo "DISCORD_WEBHOOK_URL secret is missing"
+            exit 1
+          fi
+
+          payload=$(jq -n \
+            --arg project "$PROJECT_NAME" \
+            --arg environment "$ENVIRONMENT" \
+            --arg status "$PIPELINE_STATUS" \
+            --arg build "$BUILD_RESULT" \
+            --arg deploy "$DEPLOY_RESULT" \
+            --arg sha "$COMMIT_SHA" \
+            --arg actor "$ACTOR" \
+            --arg url "$RUN_URL" \
+            --argjson color "$EMBED_COLOR" \
+            '{
+              embeds: [{
+                title: ("CI/CD " + $status + " — " + $project),
+                color: $color,
+                fields: [
+                  {name: "Environment", value: $environment, inline: true},
+                  {name: "Build", value: $build, inline: true},
+                  {name: "Deployment", value: $deploy, inline: true},
+                  {name: "Commit", value: ($sha[0:7]), inline: true},
+                  {name: "Triggered by", value: $actor, inline: true},
+                  {name: "Workflow run", value: ("[View run](" + $url + ")"), inline: false}
+                ],
+                timestamp: (now | todate)
+              }]
+            }')
+
+          curl --fail-with-body --silent --show-error \
+            --retry 2 \
+            -H "Content-Type: application/json" \
+            -d "$payload" \
+            "$DISCORD_WEBHOOK_URL"
