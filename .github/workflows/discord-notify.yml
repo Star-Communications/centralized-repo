@@ -1,7 +1,9 @@
 name: Discord Notification
 
+#Allow other GitHub Actions workflows to call this workflow.
 on:
   workflow_call:
+    # Inputs required from the calling workflow.
     inputs:
       project-name:
         description: Application name
@@ -22,7 +24,7 @@ on:
         description: Result of the CD deployment job
         required: true
         type: string
-
+    # Secret required to send messages to the Discord channel.
     secrets:
       DISCORD_WEBHOOK_URL:
         required: true
@@ -33,6 +35,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # Determine the overall pipeline status from the build and deployment results.
       - name: Determine pipeline status
         id: status
         env:
@@ -53,9 +56,10 @@ jobs:
             echo "status=INCOMPLETE" >> "$GITHUB_OUTPUT"
             echo "color=9807270" >> "$GITHUB_OUTPUT"
           fi
-
+      # Build the Discord message and send it using the webhook.
       - name: Send notification to Discord
         env:
+          # Inputs passed by the calling workflow.
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
           PROJECT_NAME: ${{ inputs.project-name }}
           ENVIRONMENT: ${{ inputs.environment }}
