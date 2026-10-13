@@ -64,36 +64,77 @@ jobs:
           PIPELINE_STATUS: ${{ steps.status.outputs.status }}
           EMBED_COLOR: ${{ steps.status.outputs.color }}
           COMMIT_SHA: ${{ github.sha }}
+          COMMIT_TITLE: ${{ github.event.head_commit.message || github.event.pull_request.title || github.workflow }}
           ACTOR: ${{ github.actor }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         shell: bash
         run: |
+          set -euo pipefail
+
           if [[ -z "$DISCORD_WEBHOOK_URL" ]]; then
             echo "DISCORD_WEBHOOK_URL secret is missing"
             exit 1
           fi
 
           payload=$(jq -n \
+            --arg status "$PIPELINE_STATUS" \
             --arg project "$PROJECT_NAME" \
             --arg environment "$ENVIRONMENT" \
-            --arg status "$PIPELINE_STATUS" \
+            --arg repository "$REPOSITORY" \
+            --arg branch "$BRANCH" \
+            --arg commit_title "$COMMIT_TITLE" \
+            --arg sha "${COMMIT_SHA:0:7}" \
+            --arg actor "$ACTOR" \
             --arg build "$BUILD_RESULT" \
             --arg deploy "$DEPLOY_RESULT" \
-            --arg sha "$COMMIT_SHA" \
-            --arg actor "$ACTOR" \
             --arg url "$RUN_URL" \
             --argjson color "$EMBED_COLOR" \
             '{
               embeds: [{
-                title: ("CI/CD " + $status + " — " + $project),
+                title: ("Updating " + $status + " — " + $project),
+                url: $url,
                 color: $color,
                 fields: [
-                  {name: "Environment", value: $environment, inline: true},
-                  {name: "Build", value: $build, inline: true},
-                  {name: "Deployment", value: $deploy, inline: true},
-                  {name: "Commit", value: ($sha[0:7]), inline: true},
-                  {name: "Triggered by", value: $actor, inline: true},
-                  {name: "Workflow run", value: ("[View run](" + $url + ")"), inline: false}
+                  {
+                    name: "Repository",
+                    value: $repository,
+                    inline: false
+                  },
+                  {
+                    name: "Branch",
+                    value: $branch,
+                    inline: true
+                  },
+                  {
+                    name: "Commit Title",
+                    value: (if $commit_title == "" then "Not available" else $commit_title end),
+                    inline: false
+                  },
+                  {
+                    name: "Commit SHA",
+                    value: $sha,
+                    inline: true
+                  },
+                  {
+                    name: "Triggered by",
+                    value: $actor,
+                    inline: true
+                  },
+                  {
+                    name: "Environment",
+                    value: $environment,
+                    inline: true
+                  },
+                  {
+                    name: "Build",
+                    value: $build,
+                    inline: true
+                  },
+                  {
+                    name: "Deployment",
+                    value: $deploy,
+                    inline: true
+                  }
                 ],
                 timestamp: (now | todate)
               }]
