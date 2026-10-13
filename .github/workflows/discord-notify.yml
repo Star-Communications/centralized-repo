@@ -120,12 +120,12 @@ jobs:
                   {
                     name: "Triggered by",
                     value: $actor,
-                    inline: true
+                    inline: false
                   },
                   {
                     name: "Environment",
                     value: $environment,
-                    inline: true
+                    inline: false
                   },
                   {
                     name: "Build",
