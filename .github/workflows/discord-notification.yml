@@ -86,12 +86,13 @@ jobs:
             --argjson jobs "$JOB_RESULTS" \
             --arg url "$RUN_URL" \
             --argjson color "$EMBED_COLOR" \
-            '{
-              embeds: [{
-                title: ("Updating " + $status + " — " + $project),
-                description: ("[View workflow run](" + $url + ")"),
-                color: $color,
-                fields: [
+            '{ 
+            embeds: [{
+              title: ("Updating " + $status + " — " + $project),
+              description: ("[View workflow run](" + $url + ")"),
+              color: $color,
+              fields: (
+                [
                   {
                     name: "Repository",
                     value: $repository,
@@ -117,20 +118,24 @@ jobs:
                     value: $actor,
                     inline: false
                   },
-                   {
+                  {
                     name: "Environment",
                     value: $environment,
                     inline: false
                   }
-                ] + ($jobs | to_entries | map({
-                  name: .key,
-                  value: .value.result,
-                  inline: true
-                })),
-                ],
-                timestamp: (now | todate)
-              }]
-            }')
+                ] + (
+                  $jobs
+                  | to_entries
+                  | map({
+                      name: .key,
+                      value: .value.result,
+                      inline: true
+                    })
+                )
+              ),
+              timestamp: (now | todate)
+            }]
+          }'
 
           curl --fail-with-body --silent --show-error \
             --retry 2 \
