@@ -31,7 +31,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # Determine the overall pipeline status from the build and deployment results.
+      # Determine the overall pipeline status from the results of all jobs the caller depends on.
       - name: Determine pipeline status
         id: status
         env:
@@ -86,7 +86,7 @@ jobs:
             --argjson jobs "$JOB_RESULTS" \
             --arg url "$RUN_URL" \
             --argjson color "$EMBED_COLOR" \
-            '{ 
+            '{
             embeds: [{
               title: ("Updating " + $status + " — " + $project),
               description: ("[View workflow run](" + $url + ")"),
