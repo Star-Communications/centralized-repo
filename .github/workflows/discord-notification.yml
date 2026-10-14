@@ -136,7 +136,7 @@ jobs:
               timestamp: (now | todate)
             }]
           }'
-
+          )
           curl --fail-with-body --silent --show-error \
             --retry 2 \
             -H "Content-Type: application/json" \
