@@ -1,0 +1,139 @@
+name: Discord Notification
+
+#Allow other GitHub Actions workflows to call this workflow.
+on:
+  workflow_call:
+    # Inputs required from the calling workflow.
+    inputs:
+      project-name:
+        description: Application name
+        required: true
+        type: string
+
+      environment:
+        description: Target environment
+        required: true
+        type: string
+
+      job-results:
+        description: JSON of the caller's needs context, i.e. toJSON(needs)
+        required: true
+        type: string
+
+    # Secret required to send messages to the Discord channel.
+    secrets:
+      DISCORD_WEBHOOK_URL:
+        required: true
+
+jobs:
+  notify:
+    name: Send Discord Notification
+    runs-on: ubuntu-latest
+
+    steps:
+      # Determine the overall pipeline status from the build and deployment results.
+      - name: Determine pipeline status
+        id: status
+        env:
+          JOB_RESULTS: ${{ inputs.job-results }}
+        shell: bash
+        run: |
+          has() { jq -e --arg r "$1" 'any(.[]; .result == $r)' <<< "$JOB_RESULTS" > /dev/null; }
+
+          if has failure; then
+            echo "status=FAILURE" >> "$GITHUB_OUTPUT"; echo "color=15158332" >> "$GITHUB_OUTPUT"
+          elif has cancelled; then
+            echo "status=CANCELLED" >> "$GITHUB_OUTPUT"; echo "color=9807270" >> "$GITHUB_OUTPUT"
+          elif jq -e 'length > 0 and all(.[]; .result == "success")' <<< "$JOB_RESULTS" > /dev/null; then
+            echo "status=SUCCESS" >> "$GITHUB_OUTPUT"; echo "color=3066993" >> "$GITHUB_OUTPUT"
+          else
+            echo "status=INCOMPLETE" >> "$GITHUB_OUTPUT"; echo "color=9807270" >> "$GITHUB_OUTPUT"
+          fi
+      # Build the Discord message and send it using the webhook.
+      - name: Send notification to Discord
+        env:
+          # Inputs passed by the calling workflow.
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          PROJECT_NAME: ${{ inputs.project-name }}
+          ENVIRONMENT: ${{ inputs.environment }}
+          JOB_RESULTS: ${{ inputs.job-results }}
+          PIPELINE_STATUS: ${{ steps.status.outputs.status }}
+          EMBED_COLOR: ${{ steps.status.outputs.color }}
+          REPOSITORY: ${{ github.repository }}
+          BRANCH: ${{ github.head_ref || github.ref_name }}
+          COMMIT_SHA: ${{ github.sha }}
+          COMMIT_TITLE: ${{ github.event.head_commit.message || github.event.pull_request.title || github.workflow }}
+          ACTOR: ${{ github.actor }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [[ -z "$DISCORD_WEBHOOK_URL" ]]; then
+            echo "DISCORD_WEBHOOK_URL secret is missing"
+            exit 1
+          fi
+
+          payload=$(jq -n \
+            --arg status "$PIPELINE_STATUS" \
+            --arg project "$PROJECT_NAME" \
+            --arg environment "$ENVIRONMENT" \
+            --arg repository "$REPOSITORY" \
+            --arg branch "$BRANCH" \
+            --arg commit_title "$COMMIT_TITLE" \
+            --arg sha "${COMMIT_SHA:0:7}" \
+            --arg actor "$ACTOR" \
+            --argjson jobs "$JOB_RESULTS" \
+            --arg url "$RUN_URL" \
+            --argjson color "$EMBED_COLOR" \
+            '{
+              embeds: [{
+                title: ("Updating " + $status + " — " + $project),
+                description: ("[View workflow run](" + $url + ")"),
+                color: $color,
+                fields: [
+                  {
+                    name: "Repository",
+                    value: $repository,
+                    inline: false
+                  },
+                  {
+                    name: "Branch",
+                    value: $branch,
+                    inline: false
+                  },
+                  {
+                    name: "Commit Title",
+                    value: (if $commit_title == "" then "Not available" else $commit_title end),
+                    inline: false
+                  },
+                  {
+                    name: "Commit SHA",
+                    value: $sha,
+                    inline: false
+                  },
+                  {
+                    name: "Triggered by",
+                    value: $actor,
+                    inline: false
+                  },
+                   {
+                    name: "Environment",
+                    value: $environment,
+                    inline: false
+                  }
+                ] + ($jobs | to_entries | map({
+                  name: .key,
+                  value: .value.result,
+                  inline: true
+                })),
+                ],
+                timestamp: (now | todate)
+              }]
+            }')
+
+          curl --fail-with-body --silent --show-error \
+            --retry 2 \
+            -H "Content-Type: application/json" \
+            -d "$payload" \
+            "$DISCORD_WEBHOOK_URL"
