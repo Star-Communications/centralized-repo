@@ -1,0 +1,30 @@
+name: cd-dev
+
+on:
+  workflow_call:
+    inputs:
+      build-release-runner:
+        description: "Runner where the release build will run"
+        type: string
+        required: true
+
+  workflow_dispatch:
+    inputs:
+      build-release-runner:
+        description: "Runner where the release build will run"
+        type: string
+        required: false
+        default: "dev-on-prem"
+
+jobs:
+  check-out:
+    runs-on: ${{ github.event.inputs.build-release-runner }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Build, tag, and run image
+        id: docker-image
+
+        run: |
+          sudo docker compose -f docker-compose.yml up --build -d

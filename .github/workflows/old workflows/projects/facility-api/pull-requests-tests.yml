@@ -1,0 +1,12 @@
+name: Pull Request Tests
+
+on:
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  run-tests:
+    uses: Star-Communications/centralized-repo/.github/workflows/ci-test-dotnet.yml@main
+    with:
+      dotnet-version: "8.0"
