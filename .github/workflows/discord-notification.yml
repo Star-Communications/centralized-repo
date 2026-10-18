@@ -9,7 +9,7 @@ on:
         description: Runner used to execute the notification job
         required: true
         type: string
-        
+
       project-name:
         description: Application name
         required: true
@@ -22,6 +22,11 @@ on:
 
       job-results:
         description: JSON of the caller's needs context, i.e. toJSON(needs)
+        required: true
+        type: string
+
+      workflow_title:
+        description: Prefix for the Discord notification title
         required: true
         type: string
 
@@ -62,6 +67,7 @@ jobs:
           PROJECT_NAME: ${{ inputs.project-name }}
           ENVIRONMENT: ${{ inputs.environment }}
           JOB_RESULTS: ${{ inputs.job-results }}
+          WORKFLOW_TITLE: ${{ inputs.workflow_title }}
           PIPELINE_STATUS: ${{ steps.status.outputs.status }}
           EMBED_COLOR: ${{ steps.status.outputs.color }}
           REPOSITORY: ${{ github.repository }}
@@ -82,6 +88,7 @@ jobs:
           payload=$(jq -n \
             --arg status "$PIPELINE_STATUS" \
             --arg project "$PROJECT_NAME" \
+            --arg workflow_title "$WORKFLOW_TITLE" \
             --arg environment "$ENVIRONMENT" \
             --arg repository "$REPOSITORY" \
             --arg branch "$BRANCH" \
@@ -93,7 +100,7 @@ jobs:
             --argjson color "$EMBED_COLOR" \
             '{
             embeds: [{
-              title: ("Deployment " + $status + " — " + $project),
+              title: ($workflow_title + " " + $status + " — " + $project),
               description: ("[View workflow run](" + $url + ")"),
               color: $color,
               fields: (
@@ -111,7 +118,7 @@ jobs:
                   {
                     name: "Commit Title",
                     value: (
-                      ($commit_title | split("\n")[0]) as $title
+                      ((($commit_title | split("\n")[0]) // "") | rtrimstr("\r")) as $title
                       | if $title == "" then
                           "No commit title provided!"
                         elif ($title | length) <= 200 then
@@ -122,13 +129,13 @@ jobs:
                              | if ($title[197:198] | test("\\s")) then
                                  rtrimstr(" ")
                                else
-                                 sub("\\s*\\S+$"; "") | rtrimstr(" ") 
+                                 sub("\\s*\\S+$"; "") | rtrimstr(" ")
                                end
-                          ) + "..."         
-                                  
+                          ) + "..."
+
                         end
-                    ),  
-                    inline:false
+                    ),
+                    inline: false
 
                   },
                   {
