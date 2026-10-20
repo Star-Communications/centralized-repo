@@ -113,7 +113,22 @@ jobs:
                   {
                     name: "Branch",
                     value: $branch,
-                    inline: false
+                    inline: true
+                  },
+                  {
+                    name: "Commit SHA",
+                    value: $sha,
+                    inline: true
+                  },
+                  {
+                    name: "Environment",
+                    value: $environment,
+                    inline: true
+                  },
+                  {
+                    name: "Triggered by",
+                    value: $actor,
+                    inline: true
                   },
                   {
                     name: "Commit Title",
@@ -136,21 +151,10 @@ jobs:
                         end
                     ),
                     inline: false
-
                   },
                   {
-                    name: "Commit SHA",
-                    value: $sha,
-                    inline: false
-                  },
-                  {
-                    name: "Triggered by",
-                    value: $actor,
-                    inline: false
-                  },
-                  {
-                    name: "Environment",
-                    value: $environment,
+                    name: "Action Jobs",
+                    value: "\u200B",
                     inline: false
                   }
                 ] + (
