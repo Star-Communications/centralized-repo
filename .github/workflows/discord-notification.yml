@@ -123,7 +123,7 @@ jobs:
                   {
                     name: "Environment",
                     value: $environment,
-                    inline: true
+                    inline: false
                   },
                   {
                     name: "Triggered by",
@@ -152,21 +152,18 @@ jobs:
                     ),
                     inline: false
                   },
-                  {
-                    name: "Action Jobs",
-                    value: "\u200B",
-                    inline: false
-                  }
-                ] + (
-                  $jobs
-                  | to_entries
-                  | map({
-                      name: .key,
-                      value: .value.result,
-                      inline: true
-                    })
-                )
-              ),
+              ] + [
+                {
+                  name: "Action Jobs",
+                  value: (
+                    $jobs
+                    | to_entries
+                    | map("`\(.key)`  →  **\(.value.result)**")
+                    | join("\n")
+                  ),
+                  inline: false
+                }
+              ],
               timestamp: (now | todate)
             }]
           }'
