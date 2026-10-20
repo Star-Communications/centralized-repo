@@ -156,10 +156,9 @@ jobs:
                 {
                   name: "Action Jobs",
                   value: (
-                    $jobs
-                    | to_entries
-                    | map("`\(.key)`  →  **\(.value.result)**")
-                    | join("\n")
+                    ($jobs | to_entries | map("**\(.key)**") | join("     "))
+                    + "\n"
+                    + ($jobs | to_entries | map("\(.value.result)") | join("     "))
                   ),
                   inline: false
                 }
