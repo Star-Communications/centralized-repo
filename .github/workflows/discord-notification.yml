@@ -106,32 +106,37 @@ jobs:
               fields: (
                 [
                   {
-                    name: "Repository",
+                    name: "• Repository",
                     value: $repository,
                     inline: false
                   },
                   {
-                    name: "Branch",
+                    name: "• Branch",
                     value: $branch,
                     inline: true
                   },
                   {
-                    name: "Commit SHA",
+                    name: "• Commit SHA",
                     value: $sha,
                     inline: true
                   },
                   {
-                    name: "Environment",
-                    value: $environment,
+                    name: "\u200b",
+                    value: "\u200b",
                     inline: false
                   },
                   {
-                    name: "Triggered by",
+                    name: "• Environment",
+                    value: $environment,
+                    inline: true
+                  },
+                  {
+                    name: "• Triggered by",
                     value: $actor,
                     inline: true
                   },
                   {
-                    name: "Commit Title",
+                    name: "• Commit Title",
                     value: (
                       ((($commit_title | split("\n")[0]) // "") | rtrimstr("\r")) as $title
                       | if $title == "" then
@@ -154,15 +159,12 @@ jobs:
                   }
               ] + [
                 {
-                  name: "Action Jobs",
-                  value: (
-                    ($jobs | to_entries | map("**\(.key)**") | join("     "))
-                    + "\n"
-                    + ($jobs | to_entries | map("\(.value.result)") | join("     "))
-                  ),
+                  name: "• Action Jobs",
+                  value: ($jobs | to_entries | map("**\(.key)**: \(.value.result)") | join("   |   ")),
                   inline: false
                 }
-              ],
+              ]
+              ) | map(if .name == "\u200b" then . else .value = "\u2003\u2003" + .value end),
               timestamp: (now | todate)
             }]
           }'
