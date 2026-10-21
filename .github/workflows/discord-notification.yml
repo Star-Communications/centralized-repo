@@ -151,7 +151,7 @@ jobs:
                         end
                     ),
                     inline: false
-                  },
+                  }
               ] + [
                 {
                   name: "Action Jobs",
