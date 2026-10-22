@@ -123,7 +123,7 @@ jobs:
                   {
                     name: "\u200b",
                     value: "\u200b",
-                    inline: false
+                    inline: true
                   },
                   {
                     name: "• Environment",
@@ -133,6 +133,11 @@ jobs:
                   {
                     name: "• Triggered by",
                     value: $actor,
+                    inline: true
+                  },
+                  {
+                    name: "\u200b",
+                    value: "\u200b",
                     inline: true
                   },
                   {
